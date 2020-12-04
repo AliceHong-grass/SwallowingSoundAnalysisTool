@@ -644,8 +644,8 @@
             var i=topli.length-1;
             while(i>=0){
                 console.log("top("+left[i]+","+topli[i]+")");
-                console.log("p1("+p1.screenX+","+p1.screenY+")");
-                if(p1.screenX>=left[i] && p1.screenX<=left[i]+w && p1.screenY>=topli[i]+shift && p1.screenY<=topli[i]+shift+h){ break; }
+                console.log("p1("+p1.offset+","+p1.offsetY+")");
+                if(p1.offsetX>=left[i] && p1.offsetX<=left[i]+w && p1.offsetY>=topli[i]+shift && p1.offsetY<=topli[i]+shift+h){ break; }
                 else {
                     if(i==0){
                         document.getElementById("time_interval").innerHTML="超出範圍，請重新點選";
@@ -656,7 +656,7 @@
                 }
             }
             ctx.beginPath();
-            ctx.arc(p1.screenX-left[i], -(p1.screenY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
+            ctx.arc(p1.offsetX-left[i], -(p1.offsetY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
             ctx.strokeStyle = 'blue';
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -668,8 +668,8 @@
             var i=topli.length-1;
             while(i>=0){
                 console.log("top("+left[i]+","+topli[i]+")");
-                console.log("p2("+p2.screenX+","+p2.screenY+")");
-                if(p2.screenX>=left[i] && p2.screenX<=left[i]+w && p2.screenY>=topli[i]+shift && p2.screenY<=topli[i]+shift+h){ break; }
+                console.log("p2("+p2.offsetX+","+p2.offsetY+")");
+                if(p2.offsetX>=left[i] && p2.offsetX<=left[i]+w && p2.offsetY>=topli[i]+shift && p2.offsetY<=topli[i]+shift+h){ break; }
                 else {
                     if(i==0){
                         document.getElementById("time_interval").innerHTML="超出範圍，請重新點選";
@@ -680,11 +680,11 @@
                 }
             }
             ctx.beginPath();
-            ctx.arc(p2.screenX-left[i], -(p2.screenY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
+            ctx.arc(p2.offsetX-left[i], -(p2.offsetY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
             ctx.strokeStyle = 'blue';
             ctx.lineWidth = 3;
             ctx.stroke();
-            dx = Math.abs((p2.screenX-p1.screenX))/(w/(duration*1000));
+            dx = Math.abs((p2.offsetX-p1.offsetX))/(w/(duration*1000));
             document.getElementById("time_interval").innerHTML="兩點的時間區間為:"+dx+" ms";
             p1=null;
             p2=null;
