@@ -2,46 +2,865 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>FHIR Observation Code</title>
+    <title>觀看介面</title>
   </head>
   <body>
-      <table id="Table1" style="MARGIN-LEFT: auto; MARGIN-RIGHT: auto;" height="200" WIDTH="1200" border="1">
-        <tr>
-          <td align="center" width="20%" height="20">Item</td>
-          <td align="center" width="20%" height="20">Code</td>
-          <td align="center" width="20%" height="20">Unit</td>
-          <td align="center" width="40%" height="20">Discribe</td>
-        </tr>
-        <tr>
-          <td>腰臀圍比</td>
-          <td>Waist/Hip Ratio</td>
-          <td>%</td>
-          <td>...</td>
-        </tr>
-        <tr>
-          <td>右腳護背式體前彎</td>
-          <td>back-saver sit and reach right foot</td>
-          <td>cm</td>
-          <td>...</td>
-        </tr>
-        <tr>
-          <td>左腳護背式體前彎</td>
-          <td>back-saver sit and reach left foot</td>
-          <td>cm</td>
-          <td>...</td>
-        </tr>
-        <tr>
-          <td>完成度</td>
-          <td>Completion_rate</td>
-          <td>%</td>
-          <td>...</td>
-        </tr>
-        <tr>
-          <td>運動時間</td>
-          <td>Completed_duration</td>
-          <td>s</td>
-          <td>...</td>
-        </tr>
-      </table>  
-  </body> 
-</html>
+    <form autocomplete="off">
+        <p align="center">
+            <input type="file" id="files" accept=".wav">
+        </p>
+        <p align="center" id="select"></p>
+        <p align="center">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            Go to：<input type="text" id="go" value="" placeholder="HH:MM:SS" size="10">
+            <input type="button" id="go_to" value="&#x21b4;"></input>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <input type="button" id="sor" title="start of record" value="|&#9665;"></input>
+            <input type="button" id="rev" title="previous window" value="&#9665;"></input>
+            <input type="button" id="fwd" title="next window" value="&#9655;"></input>
+            <input type="button" id="eor" title="end of record" value="&#9655;|"></input>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <input type="range" min="1" class="slider" id="myRange">&nbsp;&nbsp;&nbsp;&nbsp;
+            Duration: <span id="demo" style="font-family:微軟正黑體; font-size:14px;"></span>
+        </p>
+        <p align="center" id="contral_time"></p>
+        <p align="center" id="contral_voltage"></p>
+        <p align="center" id="contral_record"></p>
+        <p id='debug' align="center" style="color:red; font-family:微軟正黑體;">{debug}</p>
+        <p id='clas' hidden="hidden"></p>
+        <input id='cla' name="cla" hidden="hidden"></input>
+        <p id='temp' hidden="hidden"></p>
+    </form>
+  </body>
+  <script>
+    var samplefreq;
+    var factor = 1.0;
+    var origin = 0.0;
+    var maxV;
+    var maxT;
+    var px = 0;
+    var opx = 0;
+    var py = h/2;
+    var opy = py;
+    var n=1;
+    var theta=0;
+    var ctx_y,ctx,ctx_x,data;
+    var yw = 35;
+    var yh = 585;
+    var xw = 1490;
+    var xh = 10;
+    var w = 1450;
+    var h = 550;
+    var left =[];
+    var topli =[];
+    var csv;
+
+    var duration=maxT;
+    document.getElementById("myRange").value =maxT;
+    document.getElementById("myRange").onchange = function() {
+        document.getElementById("demo").innerHTML = this.value;
+        duration = this.value;
+        init();
+    }
+
+    var ECGClass=[];
+    var ECGData_splite=[];
+    var max=0;
+    DataView.prototype.getString = function(offset, len) {
+        let result = "";
+        for (let i = 0; i < len; i++) {
+            let value = this.getUint8(offset + i);
+            result += String.fromCharCode(value);
+        }
+        return result;
+    };
+
+    var count=0;
+    document.getElementById("files").onchange = function() {
+        for(var j=0;j<ECGClass.length;j++){
+            document.getElementById("clas").innerHTML ="";
+            document.getElementById(ECGClass[j]+'1').style.display="none";
+        }
+        ECGClass=[];
+        ECGData_splite=[];
+        for (var j = 0; j < this.files.length; j++) {
+            ECGClass.push(this.files[j].name);
+            let fileReader = new FileReader();    // 建立 FileReader 物件
+            fileReader.readAsArrayBuffer(this.files[j]);       // 載入檔案
+            fileReader.onerror = function() { console.log(reader.error); };
+            fileReader.onload = function() {      // 設定讀檔後的函數
+                count++;
+                let contents = new DataView(event.target.result); // 取得資料
+                let wav = {
+                    CHUNK_ID: contents.getString(0, 4),
+                    CHUNK_SIZE: contents.getUint32(4, true),
+                    FORMAT: contents.getString(8, 4),
+                    SUBCHUNK_1_ID: contents.getString(12, 4),
+                    SUBCHUNK_1_SIZE: contents.getUint32(16, true),
+                    AUDIO_FORMAT: contents.getUint16(20, true),
+                    NUM_CHANNELS: contents.getUint16(22, true),
+                    SAMPLE_RATE: contents.getUint32(24, true),
+                    BYTE_RATE: contents.getUint32(28, true),
+                    BLOCK_ALIGN: contents.getUint16(32, true),
+                    BITS_PER_SAMPLE: contents.getUint16(34, true),
+                    SUBCHUNK_2_ID: contents.getString(36, 4),
+                    SUBCHUNK_2_SIZE: contents.getUint32(40, true),
+                    voice_data: []
+                };
+                let simple_size = wav.BITS_PER_SAMPLE * wav.NUM_CHANNELS;
+                let value = [];
+                for (let i = 44; i < wav.CHUNK_SIZE; i += simple_size/8) {
+                    if (wav.BITS_PER_SAMPLE == 8) { value.push(contents.getInt8(i, true)); } 
+                    else if (wav.BITS_PER_SAMPLE == 16) { value.push((contents.getInt16(i, true))); } 
+                    else if (wav.BITS_PER_SAMPLE == 32) { value.push(contents.getInt32(i, true)); }
+                    wav.voice_data.push(value);
+                }
+                
+                samplefreq = wav.SAMPLE_RATE;
+                ECGData_splite.push(value);
+                maxT = value.length /samplefreq;
+                maxV = Math.pow(2,(wav.BITS_PER_SAMPLE-1));
+                duration = maxT;
+                document.getElementById("myRange").max = maxT;
+                document.getElementById("myRange").value = maxT;
+                document.getElementById("demo").innerHTML = maxT;
+                if(count == document.getElementById("files").files.length){
+                    alert(count);
+                    addannotation();
+                    addcanvas(ECGClass);
+                    addrecord();
+                    addoption(ECGClass);
+                    init();
+                }
+            };
+        }
+    }
+
+    var ECGChoose=document.getElementById("clas").innerHTML.split(";");
+
+    function addannotation(){
+        document.getElementById('contral_time').innerHTML="";
+        document.getElementById('contral_voltage').innerHTML="";
+
+        document.getElementById('contral_time').appendChild(document.createElement('p'));
+        var btn = document.createElement('input');
+        btn.id = 'time';
+        btn.type = "button";
+        btn.value = "時間區間";
+        document.getElementById('contral_time').appendChild(btn);
+        document.getElementById('contral_time').innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        btn = document.createElement('span');
+        btn.id = 'time_interval';
+        document.getElementById('contral_time').appendChild(btn);
+        document.getElementById('time').onclick = time;
+
+        document.getElementById('contral_voltage').appendChild(document.createElement('p'));
+        btn = document.createElement('input');
+        btn.id = 'voltage';
+        btn.type = "button";
+        btn.value = "振幅大小";
+        document.getElementById('contral_voltage').appendChild(btn);
+        document.getElementById('contral_voltage').innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        btn = document.createElement('span');
+        btn.id = 'voltage_interval';
+        document.getElementById('contral_voltage').appendChild(btn);
+        document.getElementById('voltage').onclick = voltage;
+
+    }
+
+    function addrecord(){
+        document.getElementById('contral_record').innerHTML="";
+
+        document.getElementById('contral_record').appendChild(document.createElement('p'));
+        btn = document.createElement('input');
+        btn.id = 'record';
+        btn.type = "button";
+        btn.value = "紀錄資料";
+        document.getElementById('contral_record').appendChild(btn);
+        document.getElementById('contral_record').innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        btn = document.createElement('span');
+        btn.id = 'record_interval';
+        document.getElementById('contral_record').appendChild(btn);
+        document.getElementById('record').onclick = record;
+
+        if(document.getElementById('table')) {
+            var element = document.getElementById('table');
+            element.parentNode.removeChild(element);
+        }
+        document.getElementById('contral_record').appendChild(document.createElement('p'));
+        var table = document.createElement('table');
+        table.id = "table";
+        table.height = "200";
+        table.width = "300";
+        table.align = "center";
+        table.style.marginLeft = "auto";
+        table.style.marginRight = "auto";
+        table.border = "1";
+        document.body.appendChild(table);
+
+        var tr = document.createElement('tr');
+        tr.id = "tr";
+
+        var td = document.createElement('td');
+        td.id = "td_1";
+        td.height = "20";
+        td.width = "100";
+        td.align = "center";
+        td.innerHTML = "item";
+        tr.appendChild(td);
+
+        td = document.createElement('td');
+        td.id = "td_2";
+        td.height = "20";
+        td.width = "100";
+        td.align = "center";
+        td.innerHTML = "count";
+        tr.appendChild(td);
+
+        td = document.createElement('td');
+        td.id = "td_3";
+        td.height = "20";
+        td.width = "100";
+        td.align = "center";
+        td.innerHTML = "unit";
+        tr.appendChild(td);
+        
+        document.getElementById('table').appendChild(tr);
+        csv = "item,count,unit\n";
+    }
+
+    function addcanvas(codeDisplay){
+        topli = [];
+        left = [];
+        for(var i=0;i<codeDisplay.length;i++){
+            if(!document.getElementById(codeDisplay[i]+'1')){
+                //置中
+                var canv = document.createElement('p');
+                canv.id = codeDisplay[i]+'1';
+                canv.align = "center";
+                document.body.appendChild(canv);
+                //Y軸
+                canv = document.createElement('canvas');
+                canv.id = codeDisplay[i]+'y';
+                canv.width = "35";
+                canv.height = "585";
+                canv.style.border = "0px solid #d3d3d3";
+                document.getElementById(codeDisplay[i]+'1').appendChild(canv);
+                //主圖
+                canv = document.createElement('canvas');
+                canv.id = codeDisplay[i];
+                canv.width = "1450";
+                canv.height = "550";
+                canv.style.border = "1px solid black";
+                canv.style.backgroundColor = "white";
+                document.getElementById(codeDisplay[i]+'1').appendChild(canv);
+                //置中
+                canv = document.createElement('p');
+                canv.id = codeDisplay[i]+'2';
+                canv.align = "center";
+                canv.style.font = "10px Arial";
+                document.getElementById(codeDisplay[i]+'1').appendChild(canv);
+                //空格
+                document.getElementById(codeDisplay[i]+'2').innerHTML += '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                //X軸
+                canv = document.createElement('canvas');
+                canv.id = codeDisplay[i]+'x';
+                canv.width = "1490";
+                canv.height = "10";
+                canv.style.border = "0px solid #d3d3d3";
+                document.getElementById(codeDisplay[i]+'2').appendChild(canv);
+                //秒
+                document.getElementById(codeDisplay[i]+'2').innerHTML += '(S)';
+
+                var rect = document.getElementById(codeDisplay[i]).getBoundingClientRect();
+                left.push(rect.left);
+                topli.push(rect.top);
+            }
+        }
+    }
+    
+    function addoption(codeDisplay){
+        document.getElementById('select').innerHTML="";
+        for(var i=0;i<codeDisplay.length;i++){
+            if(!document.getElementById(codeDisplay[i]+'opt')){
+                document.getElementById('select').innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+                var opt = document.createElement('input');
+                opt.id = codeDisplay[i]+'opt';
+                opt.type = "checkbox";
+                opt.value = codeDisplay[i];
+                if(ECGChoose.includes(codeDisplay[i])){
+                    opt.setAttribute("checked", "true");
+                }
+                else document.getElementById(codeDisplay[i]+'1').style.display="none";
+                document.getElementById('select').appendChild(opt);
+                document.getElementById('select').innerHTML += codeDisplay[i];
+            } 
+        }
+        for(var i=0;i<codeDisplay.length;i++){
+            document.getElementById(codeDisplay[i]+'opt').onclick = function() {
+                document.getElementById("clas").innerHTML = "";
+                for(var j=0;j<codeDisplay.length;j++){
+                    if (document.getElementById(codeDisplay[j]+'opt').checked == true){
+                        document.getElementById(codeDisplay[j]+'1').style.display="block";
+                        document.getElementById("clas").innerHTML += codeDisplay[j]+";";
+                    } 
+                    else{
+                        document.getElementById(codeDisplay[j]+'1').style.display="none";
+                    }
+                }
+                ECGChoose = document.getElementById("clas").innerHTML.split(";");
+            };
+        }
+    }
+
+    function init() {
+        for(var j=0;j<ECGClass.length;j++){
+            ctx_y = document.getElementById(ECGClass[j]+'y').getContext("2d");
+            ctx_y.font = "12px Arial";
+            ctx = document.getElementById(ECGClass[j]).getContext("2d");
+            ctx_x = document.getElementById(ECGClass[j]+'x').getContext("2d");
+            ctx_x.font = "12px Arial";
+            data = ECGData_splite[j];
+            ctx.setTransform(1,0,0,-1,0,h);
+
+            ctx.clearRect(0, 0, w, h);
+            ctx_y.clearRect(0, 0, yw, yh);
+            ctx_y.fillText("-1.00",0,yh);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (var y = h/20; y <= h; y += h/20) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx_y.fillText((-1.0+n*0.1).toFixed(2),0,h-y+37);
+                n=n+1;
+            }
+            ctx.stroke();
+            n=1;
+            
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx_x.clearRect( 0,0, xw, xh);
+            ctx_x.beginPath();
+            for (var x = 0; x <= w; x += w/duration) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                var a = x/(w/duration);
+                ctx_x.fillText(a.toFixed(2),x+5,10);
+            }
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.strokeStyle = `rgb(0, 0, 0)`;
+            ctx.lineWidth = 1;
+            for (let i = 0; i < samplefreq*duration; i++) {
+                ctx.lineTo(i*(w/(samplefreq*duration)), (((data[i]-origin)*factor)*h/maxV/2.0)+(h/2.0));
+            }
+            ctx.stroke();
+            theta = 0;
+            var t = Math.floor(theta*(1/samplefreq));
+            var hour = Math.floor(t/3600);
+            if(hour<10) hour = "0" + hour;
+            var min = Math.floor((t - hour*3600)/60);
+            if(min<10) min = "0" + min;
+            var sec = t - hour*3600 - min*60;
+            if(sec<10) sec = "0" + sec;
+            document.getElementById("go").value = hour + ":" + min + ":" + sec;
+        } 
+    }
+
+    function final(){
+        for(var j=0;j<ECGClass.length;j++){
+            ctx = document.getElementById(ECGClass[j]).getContext("2d");
+            ctx_x = document.getElementById(ECGClass[j]+'x').getContext("2d");
+            ctx_x.font = "12px Arial";
+            data = ECGData_splite[j];
+            ctx.setTransform(1,0,0,-1,0,h);
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (var y = h/20; y <= h; y += h/20) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx_x.clearRect( 0,0, xw, xh);
+            ctx_x.beginPath();
+            var a=maxT;
+            for (var x = w; x >= 0; x -= w/duration) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx_x.fillText(a.toFixed(2),x+5,10);
+                a = a - 1;
+            }
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(w, h/2);
+            ctx.strokeStyle = `rgb(0, 0, 0)`;
+            ctx.lineWidth = 1;
+            for (var i = 0; i <= samplefreq*duration; i++) {
+                ctx.lineTo(w-i*(w/(samplefreq*duration)), ((data[data.length-i]-origin)*factor*h/maxV/2)+h/2.0);
+            }
+            ctx.stroke();
+            theta=data.length-samplefreq*duration;
+            var t = Math.floor(theta*(1/samplefreq));
+            var hour = Math.floor(t/3600);
+            if(hour<10) hour = "0" + hour;
+            var min = Math.floor((t - hour*3600)/60);
+            if(min<10) min = "0" + min;
+            var sec = t - hour*3600 - min*60;
+            if(sec<10) sec = "0" + sec;
+            document.getElementById("go").value= hour + ":" + min + ":" + sec;
+        }
+    }
+
+    document.getElementById("fwd").onclick = function nextWave() {
+        if(theta+samplefreq*duration*2<data.length){
+            theta+=samplefreq*duration;
+
+            for(var j=0;j<ECGClass.length;j++){
+                ctx = document.getElementById(ECGClass[j]).getContext("2d");
+                ctx_x = document.getElementById(ECGClass[j]+'x').getContext("2d");
+                ctx_x.font = "12px Arial";
+                data = ECGData_splite[j];
+                ctx.setTransform(1,0,0,-1,0,h);
+
+                ctx.clearRect(0, 0, w, h);
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                for (var y = h/20; y <= h; y += h/20) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                }
+                ctx.stroke();
+
+                ctx_x.clearRect( 0, 0, xw, xh);
+                ctx.beginPath();
+                ctx_x.beginPath();
+                for (var x = theta%samplefreq; x < w+(samplefreq*duration); x += w/duration) {
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    var a = x/(w/duration);
+                    ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),10);
+                }
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, h/2);
+                ctx.strokeStyle = `rgb(0, 0, 0)`;
+                ctx.lineWidth = 1;
+                for (i = 0; i < duration*samplefreq; i++) {
+                    ctx.lineTo(i*(w/(samplefreq*duration)), ((data[theta+i]-origin)*factor*h/maxV/2)+h/2.0);
+                }
+                ctx.stroke();
+                var t = Math.floor(theta*(1/samplefreq));
+                var hour = Math.floor(t/3600);
+                if(hour<10) hour = "0" + hour;
+                var min = Math.floor((t - hour*3600)/60);
+                if(min<10) min = "0" + min;
+                var sec = t - hour*3600 - min*60;
+                if(sec<10) sec = "0" + sec;
+                document.getElementById("go").value= hour + ":" + min + ":" + sec;
+            }
+        }
+        else{ final(); }
+    }
+
+    document.getElementById("sor").onclick = init;
+
+    document.getElementById("rev").onclick = function previousWave() {
+        if(theta-samplefreq*duration>=0){
+            theta-=samplefreq*duration;
+
+            for(var j=0;j<ECGClass.length;j++){
+                ctx = document.getElementById(ECGClass[j]).getContext("2d");
+                ctx_x = document.getElementById(ECGClass[j]+'x').getContext("2d");
+                ctx_x.font = "12px Arial";
+                data = ECGData_splite[j];
+                ctx.setTransform(1,0,0,-1,0,h);
+                ctx.clearRect(0, 0, w, h);
+
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                for (var y = h/20; y <= h; y += h/20) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                }
+                ctx.stroke();
+
+                ctx_x.clearRect( 0, 0, xw, xh);
+                ctx.beginPath();
+                ctx_x.beginPath();
+                for (var x = theta%samplefreq; x < w+(samplefreq*duration); x += w/duration) {
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, h);
+                    var a = x/(w/duration);
+                    ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),10);
+                }
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(0, h/2);
+                ctx.strokeStyle = `rgb(0, 0, 0)`;
+                ctx.lineWidth = 1;
+                for (i = 0; i < duration*samplefreq; i++) {
+                    ctx.lineTo(i*(w/(samplefreq*duration)), ((data[theta+i]-origin)*factor*h/maxV/2)+h/2.0);
+                }
+                ctx.stroke();
+                var t = Math.floor(theta*(1/samplefreq));
+                var hour = Math.floor(t/3600);
+                if(hour<10) hour = "0" + hour;
+                var min = Math.floor((t - hour*3600)/60);
+                if(min<10) min = "0" + min;
+                var sec = t - hour*3600 - min*60;
+                if(sec<10) sec = "0" + sec;
+                document.getElementById("go").value= hour + ":" + min + ":" + sec;
+            }
+        }
+        else{ init(); }
+    }
+
+    document.getElementById("eor").onclick = final;
+  
+    document.getElementById("go_to").onclick = function moveTo() {
+        var point = document.getElementById("go").value.split(":");
+        var time = parseFloat(point[0])*3600 + parseFloat(point[1])*60 + parseFloat(point[2]);
+        theta = time*samplefreq;
+        for(var j=0;j<ECGClass.length;j++){
+            ctx = document.getElementById(ECGClass[j]).getContext("2d");
+            ctx_x = document.getElementById(ECGClass[j]+'x').getContext("2d");
+            ctx_x.font = "12px Arial";
+            data = ECGData_splite[j];
+            ctx.setTransform(1,0,0,-1,0,h);
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (var y = h/20; y <= h; y += h/20) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+            }
+            ctx.stroke();
+
+            ctx_x.clearRect( 0, 0, xw, xh);
+            ctx.beginPath();
+            ctx_x.beginPath();
+            for (var x = theta%(samplefreq*duration/duration); x < (data.length*w/duration)+(samplefreq*duration); x += w/duration) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                var a = x/(w/duration);
+                ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),10);
+            }
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.strokeStyle = `rgb(0, 0, 0)`;
+            ctx.lineWidth = 1;
+            for (i = 0; i < duration*samplefreq; i++) {
+                ctx.lineTo(i*(w/(samplefreq*duration)), ((data[theta+i]-origin)*factor*h/maxV/2)+h/2.0);
+            }
+            ctx.stroke();
+        }
+    }
+
+    function redraw() {
+        for(var j=0;j<ECGClass.length;j++){
+            ctx = document.getElementById(ECGClass[j]).getContext("2d");
+            ctx_x = document.getElementById(ECGClass[j]+'x').getContext("2d");
+            ctx_x.font = "12px Arial";
+            data = ECGData_splite[j];
+            ctx.setTransform(1,0,0,-1,0,h);
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (var y = h/20; y <= h; y += h/20) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            for (var x = theta%samplefreq; x < theta%samplefreq+samplefreq*duration; x += w/duration) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+            }
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.strokeStyle = `rgb(0, 0, 0)`;
+            ctx.lineWidth = 1;
+            for (i = 0; i < duration*samplefreq; i++) {
+                ctx.lineTo(i*(w/(samplefreq*duration)), ((data[theta+i]-origin)*factor*h/maxV/2.0)+h/2.0);
+            }
+            ctx.stroke();
+        }
+    }
+
+    var p1,p2;
+    var dx,dy;
+
+    function time(){
+        document.removeEventListener("mousedown",ydisten,false);
+        document.getElementById("voltage_interval").innerHTML="";
+        document.getElementById("record_interval").innerHTML="";
+        p1=null;
+        p2=null;
+        dy=null;
+        redraw();
+        document.getElementById("time_interval").innerHTML="請點選畫面上要計算間距的兩點";
+        document.addEventListener("mousedown",xdisten,false);
+    }
+
+    function voltage(){
+        document.removeEventListener("mousedown",xdisten,false);
+        document.getElementById("time_interval").innerHTML="";
+        document.getElementById("record_interval").innerHTML="";
+        p1=null;
+        p2=null;
+        dx=null;
+        redraw();
+        document.getElementById("voltage_interval").innerHTML="請點選畫面上要計算間距的兩點";
+        document.addEventListener("mousedown",ydisten,false);
+    }
+    
+    var shift=75;
+
+    function xdisten(e){
+        if(!p1 && !p2){
+            p1 = e;
+            var i=topli.length-1;
+            while(i>=0){
+                if(p1.clientX>=left[i] && p1.clientX<=left[i]+w && p1.clientY>=topli[i]+shift && p1.clientY<=topli[i]+shift+h){ break; }
+                else {
+                    if(i==0){
+                        document.getElementById("time_interval").innerHTML="超出範圍，請重新點選";
+                        p1=null;
+                        return;
+                    }
+                    i--;
+                }
+            }
+            ctx.beginPath();
+            ctx.arc(p1.clientX-left[i], -(p1.clientY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            document.getElementById("time_interval").innerHTML="請點選畫面上的另外一點";
+            return;
+        }
+        else if(p1 && !p2){ 
+            p2 = e;
+            var i=topli.length-1;
+            while(i>=0){
+                if(p2.clientX>=left[i] && p2.clientX<=left[i]+w && p2.clientY>=topli[i]+shift && p2.clientY<=topli[i]+shift+h){ break; }
+                else {
+                    if(i==0){
+                        document.getElementById("time_interval").innerHTML="超出範圍，請重新點選";
+                        p2=null;
+                        return;
+                    }
+                    i--;
+                }
+            }
+            ctx.beginPath();
+            ctx.arc(p2.clientX-left[i], -(p2.clientY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            dx = Math.abs((p2.clientX-p1.clientX)/(w/(duration*1000)));
+            document.getElementById("time_interval").innerHTML="兩點的時間區間為:"+dx+" ms";
+            p1=null;
+            p2=null;
+            return;
+        }
+    }
+
+    function ydisten(e){
+        if(!p1 && !p2){
+            p1 = e;
+            var i=topli.length-1;
+            while(i>=0){
+                
+                if(p1.clientX>=left[i] && p1.clientX<=left[i]+w && p1.clientY>=topli[i]+shift && p1.clientY<=topli[i]+shift+h){ break; }
+                else {
+                    if(i==0){
+                        document.getElementById("voltage_interval").innerHTML="超出範圍，請重新點選";
+                        p1=null;
+                        return;
+                    }
+                    i--;
+                }
+            }
+            ctx.beginPath();
+            ctx.arc(p1.clientX-left[i], -(p1.clientY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            document.getElementById("voltage_interval").innerHTML="請點選畫面上的另外一點";
+            return;
+        }
+        else if(p1 && !p2){ 
+            p2 = e; 
+            var i=topli.length-1;
+            while(i>=0){
+                if(p2.clientX>=left[i] && p2.clientX<=left[i]+w && p2.clientY>=topli[i]+shift && p2.clientY<=topli[i]+shift+h){ break; }
+                else {
+                    if(i==0){
+                        document.getElementById("voltage_interval").innerHTML="超出範圍，請重新點選";
+                        p2=null;
+                        return;
+                    }
+                    i--;
+                }
+            }
+            ctx.beginPath();
+            ctx.arc(p2.clientX-left[i], -(p2.clientY-(topli[i]+shift))+h, 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            dy = Math.abs((p2.clientY-p1.clientY)/(h/maxV)/factor)+origin;
+            document.getElementById("voltage_interval").innerHTML="兩點的振幅大小為:"+dy;
+            p1=null;
+            p2=null;
+            return;
+        }
+    }
+  
+    var count_T=1;
+    var count_V=1;
+    function record(){
+        document.removeEventListener("mousedown",ydisten,false);
+        document.removeEventListener("mousedown",xdisten,false);
+        document.getElementById("time_interval").innerHTML="";
+        document.getElementById("voltage_interval").innerHTML="";
+        
+        if(dx && !p1){
+            tr = document.createElement('tr');
+            tr.id = "trT"+count_T;
+
+            var td = document.createElement('td');
+            td.id = "td"+count_T+"_1";
+            td.height = "20";
+            td.width = "100";
+            td.align = "center";
+            td.innerHTML = "Time"+count_T;
+            tr.appendChild(td);
+
+            td = document.createElement('td');
+            td.id = "td"+count_T+"_2";
+            td.height = "20";
+            td.width = "100";
+            td.align = "center";
+            td.innerHTML = dx;
+            tr.appendChild(td);
+
+            td = document.createElement('td');
+            td.id = "td"+count_T+"_3";
+            td.height = "20";
+            td.width = "100";
+            td.align = "center";
+            td.innerHTML = "ms";
+            tr.appendChild(td);
+            
+            document.getElementById('table').appendChild(tr);
+
+            var p = document.createElement('p');
+            p.id = "p";
+            p.align = "center";
+            document.body.appendChild(p);
+
+            csv += "Time" + count_T + "," + dx + "," + "ms\n";
+            dx="";
+            addsave();
+            count_T++;
+        }
+        else if(dy && !p1){
+            tr = document.createElement('tr');
+            tr.id = "trV"+count_V;
+
+            var td = document.createElement('td');
+            td.id = "td"+count_V+"_1";
+            td.height = "20";
+            td.width = "100";
+            td.align = "center";
+            td.innerHTML = "Voltage"+count_V;
+            tr.appendChild(td);
+
+            td = document.createElement('td');
+            td.id = "td"+count_V+"_2";
+            td.height = "20";
+            td.width = "100";
+            td.align = "center";
+            td.innerHTML = dy;
+            tr.appendChild(td);
+
+            td = document.createElement('td');
+            td.id = "td"+count_V+"_3";
+            td.height = "20";
+            td.width = "100";
+            td.align = "center";
+            td.innerHTML = "(ADC)";
+            tr.appendChild(td);
+            
+            document.getElementById('table').appendChild(tr);
+            var p = document.createElement('p');
+            p.id = "p";
+            p.align = "center";
+            document.body.appendChild(p);
+
+            csv += "Voltage" + count_V + "," + dy + "," + "(ADC)\n";
+            dy="";
+            addsave();
+            count_V++;
+        }
+        else {
+            document.getElementById("record_interval").innerHTML="請先選擇要記錄的項目與位置";
+        }
+    }
+    
+    function addsave(){
+        document.getElementById('p').innerHTML="";
+        var btn = document.createElement('input');
+        btn.id = 'save';
+        btn.type = "button";
+        btn.value = "儲存csv與txt";
+        btn.align = "center";
+        document.getElementById('p').appendChild(btn);
+        document.getElementById('p').innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        btn = document.createElement('span');
+        btn.id = 'save_debug';
+        document.getElementById('p').appendChild(btn);
+        document.getElementById('save').onclick = save;
+    }
+
+    function save(){
+        var name;
+        var hiddenElement = document.createElement('a');
+        hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+        hiddenElement.target = '_blank';
+        name = new Date().toISOString();
+        hiddenElement.download = name+'.csv';
+        hiddenElement.click();
+
+        hiddenElement = document.createElement('a');
+        hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+        hiddenElement.target = '_blank';
+        name = new Date().toISOString();
+        hiddenElement.download = name+'.txt';
+        hiddenElement.click();
+    }
+
+  </script>
