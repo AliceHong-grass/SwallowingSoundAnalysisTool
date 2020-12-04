@@ -26,7 +26,6 @@
         <p align="center" id="contral_time"></p>
         <p align="center" id="contral_voltage"></p>
         <p align="center" id="contral_record"></p>
-        <p id='debug' align="center" style="color:red; font-family:微軟正黑體;">{debug}</p>
         <p id='clas' hidden="hidden"></p>
         <input id='cla' name="cla" hidden="hidden"></input>
         <p id='temp' hidden="hidden"></p>
@@ -125,7 +124,6 @@
                 document.getElementById("myRange").value = maxT;
                 document.getElementById("demo").innerHTML = maxT;
                 if(count == document.getElementById("files").files.length){
-                    alert(count);
                     addannotation();
                     addcanvas(ECGClass);
                     addrecord();
