@@ -3,15 +3,6 @@
   <head>
     <meta charset="utf-8">
     <title>觀看介面</title>
-    <script>
-        if(document.all){ top.window.resizeTo(screen.availWidth,screen.availHeight); }
-        else if(document.layers||document.getElementById){
-            if(top.window.outerHeight<screen.availHeight||top.window.outerWidth<screen.availWidth) {
-                top.window.outerHeight = screen.availHeight;
-                top.window.outerWidth = screen.availWidth;
-            }
-        }
-    </script>
   </head>
   <body>
     <form autocomplete="off">
@@ -650,8 +641,8 @@
             p1 = e;
             var i=topli.length-1;
             while(i>=0){
-                alert("top("+left[i]+","+topli[i]+")");
-                alert("p1("+p1.clientX+","+p1.clientY+")");
+                // alert("top("+left[i]+","+topli[i]+")");
+                // alert("p1("+p1.clientX+","+p1.clientY+")");
                 if(p1.clientX>=left[i] && p1.clientX<=left[i]+w && p1.clientY>=topli[i]+shift && p1.clientY<=topli[i]+shift+h){ break; }
                 else {
                     if(i==0){
@@ -674,8 +665,8 @@
             p2 = e;
             var i=topli.length-1;
             while(i>=0){
-                alert("top("+left[i]+","+topli[i]+")");
-                alert("p2("+p2.clientX+","+p2.clientY+")");
+                // alert("top("+left[i]+","+topli[i]+")");
+                // alert("p2("+p2.clientX+","+p2.clientY+")");
                 if(p2.clientX>=left[i] && p2.clientX<=left[i]+w && p2.clientY>=topli[i]+shift && p2.clientY<=topli[i]+shift+h){ break; }
                 else {
                     if(i==0){
@@ -704,8 +695,8 @@
             p1 = e;
             var i=topli.length-1;
             while(i>=0){
-                alert("top("+left[i]+","+topli[i]+")");
-                alert("p1("+p1.clientX+","+p1.clientY+")");
+                // alert("top("+left[i]+","+topli[i]+")");
+                // alert("p1("+p1.clientX+","+p1.clientY+")");
                 if(p1.clientX>=left[i] && p1.clientX<=left[i]+w && p1.clientY>=topli[i]+shift && p1.clientY<=topli[i]+shift+h){ break; }
                 else {
                     if(i==0){
@@ -728,8 +719,8 @@
             p2 = e; 
             var i=topli.length-1;
             while(i>=0){
-                alert("top("+left[i]+","+topli[i]+")");
-                alert("p2("+p2.clientX+","+p2.clientY+")");
+                // alert("top("+left[i]+","+topli[i]+")");
+                // alert("p2("+p2.clientX+","+p2.clientY+")");
                 if(p2.clientX>=left[i] && p2.clientX<=left[i]+w && p2.clientY>=topli[i]+shift && p2.clientY<=topli[i]+shift+h){ break; }
                 else {
                     if(i==0){
