@@ -610,8 +610,9 @@
     var p1,p2;
     var dx,dy;
 
+    var image = document.getElementById(ECGClass[0]);
     function time(){
-        document.removeEventListener("mousedown",ydisten,false);
+        image.removeEventListener("mousedown",ydisten,false);
         document.getElementById("voltage_interval").innerHTML="";
         document.getElementById("record_interval").innerHTML="";
         p1=null;
@@ -619,7 +620,7 @@
         dy=null;
         redraw();
         document.getElementById("time_interval").innerHTML="請點選畫面上要計算間距的兩點";
-        document.addEventListener("mousedown",xdisten,false);
+        image.addEventListener("mousedown",xdisten,false);
     }
 
     function voltage(){
