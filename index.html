@@ -610,8 +610,9 @@
     var p1,p2;
     var dx,dy;
 
-    var image = document.getElementById(ECGClass[0]);
+    
     function time(){
+        var image = document.getElementById(ECGClass[0]);
         image.removeEventListener("mousedown",ydisten,false);
         document.getElementById("voltage_interval").innerHTML="";
         document.getElementById("record_interval").innerHTML="";
