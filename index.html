@@ -3,6 +3,15 @@
   <head>
     <meta charset="utf-8">
     <title>觀看介面</title>
+    <script>
+        if(document.all){ top.window.resizeTo(screen.availWidth,screen.availHeight); }
+        else if(document.layers||document.getElementById){
+            if(top.window.outerHeight<screen.availHeight||top.window.outerWidth<screen.availWidth) {
+                top.window.outerHeight = screen.availHeight;
+                top.window.outerWidth = screen.availWidth;
+            }
+        }
+    </script>
   </head>
   <body>
     <form autocomplete="off">
