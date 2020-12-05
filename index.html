@@ -127,7 +127,7 @@
                     addannotation();
                     addcanvas(ECGClass);
                     addrecord();
-                    addoption(ECGClass);
+                    //addoption(ECGClass);
                     init();
                 }
             };
@@ -277,39 +277,39 @@
         }
     }
     
-    function addoption(codeDisplay){
-        document.getElementById('select').innerHTML="";
-        for(var i=0;i<codeDisplay.length;i++){
-            if(!document.getElementById(codeDisplay[i]+'opt')){
-                document.getElementById('select').innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-                var opt = document.createElement('input');
-                opt.id = codeDisplay[i]+'opt';
-                opt.type = "checkbox";
-                opt.value = codeDisplay[i];
-                if(ECGChoose.includes(codeDisplay[i])){
-                    opt.setAttribute("checked", "true");
-                }
-                else document.getElementById(codeDisplay[i]+'1').style.display="none";
-                document.getElementById('select').appendChild(opt);
-                document.getElementById('select').innerHTML += codeDisplay[i];
-            } 
-        }
-        for(var i=0;i<codeDisplay.length;i++){
-            document.getElementById(codeDisplay[i]+'opt').onclick = function() {
-                document.getElementById("clas").innerHTML = "";
-                for(var j=0;j<codeDisplay.length;j++){
-                    if (document.getElementById(codeDisplay[j]+'opt').checked == true){
-                        document.getElementById(codeDisplay[j]+'1').style.display="block";
-                        document.getElementById("clas").innerHTML += codeDisplay[j]+";";
-                    } 
-                    else{
-                        document.getElementById(codeDisplay[j]+'1').style.display="none";
-                    }
-                }
-                ECGChoose = document.getElementById("clas").innerHTML.split(";");
-            };
-        }
-    }
+    // function addoption(codeDisplay){
+    //     document.getElementById('select').innerHTML="";
+    //     for(var i=0;i<codeDisplay.length;i++){
+    //         if(!document.getElementById(codeDisplay[i]+'opt')){
+    //             document.getElementById('select').innerHTML += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+    //             var opt = document.createElement('input');
+    //             opt.id = codeDisplay[i]+'opt';
+    //             opt.type = "checkbox";
+    //             opt.value = codeDisplay[i];
+    //             if(ECGChoose.includes(codeDisplay[i])){
+    //                 opt.setAttribute("checked", "true");
+    //             }
+    //             else document.getElementById(codeDisplay[i]+'1').style.display="none";
+    //             document.getElementById('select').appendChild(opt);
+    //             document.getElementById('select').innerHTML += codeDisplay[i];
+    //         } 
+    //     }
+    //     for(var i=0;i<codeDisplay.length;i++){
+    //         document.getElementById(codeDisplay[i]+'opt').onclick = function() {
+    //             document.getElementById("clas").innerHTML = "";
+    //             for(var j=0;j<codeDisplay.length;j++){
+    //                 if (document.getElementById(codeDisplay[j]+'opt').checked == true){
+    //                     document.getElementById(codeDisplay[j]+'1').style.display="block";
+    //                     document.getElementById("clas").innerHTML += codeDisplay[j]+";";
+    //                 } 
+    //                 else{
+    //                     document.getElementById(codeDisplay[j]+'1').style.display="none";
+    //                 }
+    //             }
+    //             ECGChoose = document.getElementById("clas").innerHTML.split(";");
+    //         };
+    //     }
+    // }
 
     function init() {
         for(var j=0;j<ECGClass.length;j++){
