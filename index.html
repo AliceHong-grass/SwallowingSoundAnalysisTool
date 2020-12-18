@@ -35,7 +35,7 @@
         fileReader.onerror = function() { console.log(reader.error); };
         // 讀檔後的取得資料
         fileReader.onload = function() { 
-            allTimeAndVoltage = event.target.result; 
+            allTimeAndVoltage = event.target.result;
             if(document.getElementById("files").value){
                 if(document.getElementById('AnnotationTable')) document.getElementById('AnnotationTable').innerHTML="";
                 if(document.getElementById("RecordTable")) document.getElementById("RecordTable").innerHTML="";
