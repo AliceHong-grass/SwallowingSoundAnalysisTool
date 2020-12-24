@@ -6,17 +6,14 @@
   </head>
   <body>
       <!--網頁顯示選擇檔案的按鍵-->
-      <p style="position: absolute;top: 0%;font-size: 75%;text-align: center;">
-        請選擇要添增資料的 TimeAndVoltage.csv (非必填)：<input type="file" id="original1" accept=".csv" style='width:12%; border:1px solid #BBB;'>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        請選擇要添增資料的 Swallow.csv (非必填)：<input type="file" id="original2" accept=".csv" style='width:12%; border:1px solid #BBB;'>
+      <p style="position: absolute;top: 0%;left:49%;transform: translateX(-50%);font-size: 75%;">
+        請選擇要添增資料的 Swallow.csv (非必填)：<input type="file" id="original2" accept=".csv" style='width:20%; border:1px solid #BBB;'>
         &nbsp;&nbsp;&nbsp;&nbsp;
         <!--只讓使用者選擇一個 .wav 檔-->
-        請選擇要標記的 wav 檔：<input type="file" id="files" accept=".wav" style='width:12%; border:1px solid #BBB;'>
+        請選擇要標記的 wav 檔：<input type="file" id="files" accept=".wav" style='width:20%; border:1px solid #BBB;'>
       </p>
   </body>
   <script>
-    document.getElementById("original1").style.fontSize = window.innerHeight/63.1+"px";
     document.getElementById("original2").style.fontSize = window.innerHeight/63.1+"px";
     document.getElementById("files").style.fontSize = window.innerHeight/63.1+"px";
     var ECGData_splite=[];
@@ -25,28 +22,7 @@
     var maxT;
     var duration;
     var samplefreq;
-    var allTimeAndVoltage= "";
     var allSwallow= "";
-
-    document.getElementById("original1").onchange = function() {
-        // 建立 FileReader 物件
-        let fileReader = new FileReader();
-        // 若檔案讀取有問題，則顯示 error
-        fileReader.onerror = function() { console.log(reader.error); };
-        // 讀檔後的取得資料
-        fileReader.onload = function() { 
-            allTimeAndVoltage = event.target.result;
-            if(document.getElementById("files").value){
-                if(document.getElementById('AnnotationTable')) document.getElementById('AnnotationTable').innerHTML="";
-                if(document.getElementById("RecordTable")) document.getElementById("RecordTable").innerHTML="";
-                if(document.getElementById("SaveTable")) document.getElementById("SaveTable").innerHTML="";
-                addAnnotationButton();
-            }
-        };
-        if((allTimeAndVoltage!="" && confirm("變更後就不會有先前的資料。確定要執行嗎?")==true)||allTimeAndVoltage==""){
-            fileReader.readAsText(this.files[0], 'gb2312');
-        }
-    }
 
     document.getElementById("original2").onchange = function() {
         // 建立 FileReader 物件
@@ -158,7 +134,7 @@
         var ContralCanvusP = document.createElement('p');
         ContralCanvusP.id = 'ContralCanvusP';
         ContralCanvusP.style.position = "absolute";
-        ContralCanvusP.style.top = "5%";
+        ContralCanvusP.style.top = "6%";
         ContralCanvusP.style.left = "32%";
         ContralCanvusP.style.fontSize = window.innerHeight/63.1+"px";
         document.body.appendChild(ContralCanvusP);
@@ -314,12 +290,12 @@
             var rect = document.getElementById(codeDisplay[i]).getBoundingClientRect();
             CanvusLeft.push(rect.left);
             CanvusTop.push(rect.top);
-            document.getElementById("StartOfRecordButton").onclick = init;
-            document.getElementById("EndOfRecordButton").onclick = final;
-            document.getElementById("PreviousWindowButton").onclick = previousWave;
-            document.getElementById("NextWindowButton").onclick =  nextWave;
-            document.getElementById("GoToButton").onclick =  moveTo;
         }
+        document.getElementById("StartOfRecordButton").onclick = init;
+        document.getElementById("EndOfRecordButton").onclick = final;
+        document.getElementById("PreviousWindowButton").onclick = previousWave;
+        document.getElementById("NextWindowButton").onclick =  nextWave;
+        document.getElementById("GoToButton").onclick =  moveTo;
     }
 
     var yw = window.innerWidth/53.333;
@@ -555,57 +531,11 @@
         AnnotationTable.id = 'AnnotationTable';
         AnnotationTable.style.position = "absolute";
         AnnotationTable.style.left = "5%";
-        AnnotationTable.style.top = window.innerHeight/1.215+"px";
+        AnnotationTable.style.top = window.innerHeight/1.18+"px";
         AnnotationTable.style.marginLeft = "auto";
         AnnotationTable.style.marginRight = "auto";
         AnnotationTable.style.fontSize = window.innerHeight/63.1+"px";
         document.body.appendChild(AnnotationTable);
-            var AnnotationTr0 = document.createElement('tr');
-            AnnotationTr0.id = "AnnotationTr0";
-            document.getElementById('AnnotationTable').appendChild(AnnotationTr0);
-                var AnnotationTimeTd0 = document.createElement('td');
-                AnnotationTimeTd0.id = "AnnotationTimeTd0";
-                AnnotationTimeTd0.align = "center";
-                AnnotationTimeTd0.width = window.innerWidth/16;
-                document.getElementById('AnnotationTr0').appendChild(AnnotationTimeTd0);
-                    var TimeIntervalButton = document.createElement('input');
-                    TimeIntervalButton.id = 'TimeIntervalButton';
-                    TimeIntervalButton.type = "button";
-                    TimeIntervalButton.value = "標記時間區間";
-                    TimeIntervalButton.style.fontSize = window.innerHeight/63.1+"px";
-                    document.getElementById('AnnotationTimeTd0').appendChild(TimeIntervalButton);
-                var AnnotationTimeTd1 = document.createElement('td');
-                AnnotationTimeTd1.id = "AnnotationTimeTd1";
-                AnnotationTimeTd1.align = "center";
-                AnnotationTimeTd1.width = window.innerWidth/4.85;
-                AnnotationTimeTd1.style.border = "1px solid black";
-                document.getElementById('AnnotationTr0').appendChild(AnnotationTimeTd1);
-                    var TimeIntervalSpan = document.createElement('span');
-                    TimeIntervalSpan.id = 'TimeIntervalSpan';
-                    TimeIntervalSpan.innerHTML = "時間區間與振幅大小的標記會放在同一個表格中，";
-                    document.getElementById('AnnotationTimeTd1').appendChild(TimeIntervalSpan);
-            var AnnotationTr1 = document.createElement('tr');
-            AnnotationTr1.id = "AnnotationTr1";
-            document.getElementById('AnnotationTable').appendChild(AnnotationTr1);
-                var AnnotationVoltageTd0 = document.createElement('td');
-                AnnotationVoltageTd0.id = "AnnotationVoltageTd0";
-                AnnotationVoltageTd0.align = "center";
-                document.getElementById('AnnotationTr1').appendChild(AnnotationVoltageTd0);
-                    var VoltageIntervalButton = document.createElement('input');
-                    VoltageIntervalButton.id = 'VoltageIntervalButton';
-                    VoltageIntervalButton.type = "button";
-                    VoltageIntervalButton.value = "標記振幅大小";
-                    VoltageIntervalButton.style.fontSize = window.innerHeight/63.1+"px";
-                    document.getElementById('AnnotationVoltageTd0').appendChild(VoltageIntervalButton);
-                var AnnotationVoltageTd1 = document.createElement('td');
-                AnnotationVoltageTd1.id = "AnnotationVoltageTd1";
-                AnnotationVoltageTd1.align = "center";
-                AnnotationVoltageTd1.style.border = "1px solid black";
-                document.getElementById('AnnotationTr1').appendChild(AnnotationVoltageTd1);
-                    var VoltageIntervalSpan = document.createElement('span');
-                    VoltageIntervalSpan.id = 'VoltageIntervalSpan';
-                    VoltageIntervalSpan.innerHTML = "吞嚥時間的標記存放在另一個表格中。";
-                    document.getElementById('AnnotationVoltageTd1').appendChild(VoltageIntervalSpan);
             var AnnotationTr2 = document.createElement('tr');
             AnnotationTr2.id = "AnnotationTr2";
             document.getElementById('AnnotationTable').appendChild(AnnotationTr2);
@@ -622,17 +552,15 @@
                 var AnnotationSwallowTd1 = document.createElement('td');
                 AnnotationSwallowTd1.id = "AnnotationSwallowTd1";
                 AnnotationSwallowTd1.align = "center";
-                AnnotationSwallowTd1.style.border = "1px solid black";
                 document.getElementById('AnnotationTr2').appendChild(AnnotationSwallowTd1);
                     var SwallowIntervalSpan = document.createElement('span');
                     SwallowIntervalSpan.id = 'SwallowIntervalSpan';
-                    SwallowIntervalSpan.innerHTML = "兩個紀錄的表格切換時，先前的紀錄會消失。";
                     document.getElementById('AnnotationSwallowTd1').appendChild(SwallowIntervalSpan);
         var RecordTable = document.createElement('table');
         RecordTable.id = "RecordTable";
         RecordTable.style.position = "absolute";
         RecordTable.style.left = "35%";
-        RecordTable.style.top = window.innerHeight/1.21+"px";
+        RecordTable.style.top = window.innerHeight/1.18+"px";
         RecordTable.style.marginLeft = "auto";
         RecordTable.style.marginRight = "auto";
         RecordTable.style.fontSize=window.innerHeight/63.1+"px";
@@ -642,127 +570,18 @@
         SaveTable.id = 'SaveTable';
         SaveTable.style.position = "absolute";
         SaveTable.style.left = "5%";
-        SaveTable.style.top = window.innerHeight/1.045+"px";
+        SaveTable.style.top = window.innerHeight/1.11+"px";
         SaveTable.style.marginLeft = "auto";
         SaveTable.style.marginRight = "auto";
         document.body.appendChild(SaveTable);
+        SwallowTable();
         // 使用者點選標記的按鍵
-        document.getElementById('TimeIntervalButton').onclick = TimeInterval;
-        document.getElementById('VoltageIntervalButton').onclick = VoltageInterval;
         document.getElementById('SwallowIntervalButton').onclick = SwallowInterval;
     }
 
     var csv = "";
-    var flag = "";
     var p1,p2,p3,p4,p5,p6;
-    var dx,dy;
-    function TimeInterval(){
-        document.removeEventListener("mousedown",ydisten,false);
-        document.removeEventListener("mousedown",swallowdisten,false);
-        // 網頁重製畫布，去除先前標記的點
-        redraw();
-        p1=null;
-        p2=null;  
-        dy=null;
-        // 網頁將其他按鍵的文字框清空
-        document.getElementById("TimeIntervalSpan").innerHTML="";
-        document.getElementById("VoltageIntervalSpan").innerHTML="";
-        document.getElementById("SwallowIntervalSpan").innerHTML="";
-        // 網頁重製表格
-        if(flag == "Swallow") {
-            if (confirm("確定要切換紀錄的表格?還是先儲存紀錄?")==true){ 
-                // 網頁禁用標記按鍵
-                document.getElementById("TimeIntervalButton").disabled=true;
-                document.getElementById("VoltageIntervalButton").disabled=true;
-                document.getElementById("SwallowIntervalButton").disabled=true;
-                TimeAndVoltageTable();
-                flag = "Time";
-                 // 網頁於按鍵的文字框指示選擇第一個要標記的點
-                document.getElementById("TimeIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-                // 使用者點選要標記的第一個點
-                document.addEventListener("mousedown",xdisten,false);
-            }
-        }
-        else if(flag == ""){
-            // 網頁禁用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=true;
-            document.getElementById("VoltageIntervalButton").disabled=true;
-            document.getElementById("SwallowIntervalButton").disabled=true;
-            TimeAndVoltageTable();
-            flag = "Time";
-                // 網頁於按鍵的文字框指示選擇第一個要標記的點
-            document.getElementById("TimeIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-            // 使用者點選要標記的第一個點
-            document.addEventListener("mousedown",xdisten,false);
-        }
-        else{
-            // 網頁禁用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=true;
-            document.getElementById("VoltageIntervalButton").disabled=true;
-            document.getElementById("SwallowIntervalButton").disabled=true;
-            flag = "Time";
-            // 網頁於按鍵的文字框指示選擇第一個要標記的點
-            document.getElementById("TimeIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-            // 使用者點選要標記的第一個點
-            document.addEventListener("mousedown",xdisten,false);
-        }
-    }
-
-    function VoltageInterval(){
-        document.removeEventListener("mousedown",xdisten,false);
-        document.removeEventListener("mousedown",swallowdisten,false);
-        // 網頁重製畫布，去除先前標記的點
-        redraw();
-        p1=null;
-        p2=null;  
-        dx=null;
-        // 網頁將其他按鍵的文字框清空
-        document.getElementById("TimeIntervalSpan").innerHTML="";
-        document.getElementById("VoltageIntervalSpan").innerHTML="";
-        document.getElementById("SwallowIntervalSpan").innerHTML="";
-        // 網頁重製表格
-        if(flag == "Swallow") {
-            if (confirm("確定要切換紀錄的表格?還是先儲存紀錄?")==true){ 
-                // 網頁禁用標記按鍵
-                document.getElementById("TimeIntervalButton").disabled=true;
-                document.getElementById("VoltageIntervalButton").disabled=true;
-                document.getElementById("SwallowIntervalButton").disabled=true;
-                TimeAndVoltageTable();
-                flag = "Voltage";
-                // 網頁於按鍵的文字框指示選擇第一個要標記的點
-                document.getElementById("VoltageIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-                // 使用者點選要標記的第一個點
-                document.addEventListener("mousedown",xdisten,false);
-            }
-        }
-        else if(flag == ""){
-            // 網頁禁用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=true;
-            document.getElementById("VoltageIntervalButton").disabled=true;
-            document.getElementById("SwallowIntervalButton").disabled=true;
-            TimeAndVoltageTable();
-            flag = "Voltage";
-            // 網頁於按鍵的文字框指示選擇第一個要標記的點
-            document.getElementById("VoltageIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-            // 使用者點選要標記的第一個點
-            document.addEventListener("mousedown",xdisten,false);
-        }
-        else{
-            // 網頁禁用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=true;
-            document.getElementById("VoltageIntervalButton").disabled=true;
-            document.getElementById("SwallowIntervalButton").disabled=true;
-            flag = "Voltage";
-            // 網頁於按鍵的文字框指示選擇第一個要標記的點
-            document.getElementById("VoltageIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-            // 使用者點選要標記的第一個點
-            document.addEventListener("mousedown",ydisten,false);
-        }
-    }
-
     function SwallowInterval(){
-        document.removeEventListener("mousedown",xdisten,false);
-        document.removeEventListener("mousedown",ydisten,false);
         // 網頁重製畫布，去除先前標記的點
         redraw();
         p1=null;
@@ -771,49 +590,14 @@
         p4=null;  
         p5=null;
         p6=null;    
-        dy=null;
         // 網頁將其他按鍵的文字框清空
-        document.getElementById("TimeIntervalSpan").innerHTML="";
-        document.getElementById("VoltageIntervalSpan").innerHTML="";
         document.getElementById("SwallowIntervalSpan").innerHTML="";
-        // 網頁重製表格
-        if(flag == ""){
-            // 網頁禁用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=true;
-            document.getElementById("VoltageIntervalButton").disabled=true;
-            document.getElementById("SwallowIntervalButton").disabled=true;
-            SwallowTable();
-            flag = "Swallow";
-                // 網頁於按鍵的文字框指示選擇第一個要標記的點
-            document.getElementById("SwallowIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-            // 使用者點選要標記的第一個點
-            document.addEventListener("mousedown",swallowdisten,false);
-        }
-        else if(flag != "Swallow") {
-            if (confirm("確定要切換紀錄的表格?還是先儲存紀錄?")==true){ 
-                // 網頁禁用標記按鍵
-                document.getElementById("TimeIntervalButton").disabled=true;
-                document.getElementById("VoltageIntervalButton").disabled=true;
-                document.getElementById("SwallowIntervalButton").disabled=true;
-                SwallowTable();
-                flag = "Swallow";
-                 // 網頁於按鍵的文字框指示選擇第一個要標記的點
-                document.getElementById("SwallowIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-                // 使用者點選要標記的第一個點
-                document.addEventListener("mousedown",swallowdisten,false);
-            }
-        }
-        else{
-            // 網頁禁用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=true;
-            document.getElementById("VoltageIntervalButton").disabled=true;
-            document.getElementById("SwallowIntervalButton").disabled=true;
-            flag = "Swallow";
-            // 網頁於按鍵的文字框指示選擇第一個要標記的點
-            document.getElementById("SwallowIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
-            // 使用者點選要標記的第一個點
-            document.addEventListener("mousedown",swallowdisten,false);
-        }
+        // 網頁禁用標記按鍵
+        document.getElementById("SwallowIntervalButton").disabled=true;
+        // 網頁於按鍵的文字框指示選擇第一個要標記的點
+        document.getElementById("SwallowIntervalSpan").innerHTML="請點選畫面上要標記的第一個點";
+        // 使用者點選要標記的第一個點
+        document.addEventListener("mousedown",swallowdisten,false);
     }
 
     function redraw() {
@@ -846,54 +630,6 @@
             }
             ctx.stroke();
         }
-    }
-
-    function TimeAndVoltageTable(){
-        document.getElementById('RecordTable').innerHTML="";
-        var RecordTr = document.createElement('tr');
-        RecordTr.id = "RecordTr";
-            var RecordTh0 = document.createElement('th');
-            RecordTh0.id = "RecordTh0";
-            RecordTh0.height = window.innerHeight/37.85;
-            RecordTh0.width = window.innerWidth/16;
-            RecordTh0.align = "center";
-            RecordTh0.innerHTML = "item";
-            RecordTr.appendChild(RecordTh0);
-            var RecordTh1 = document.createElement('th');
-            RecordTh1.id = "RecordTh1";
-            RecordTh1.height = window.innerHeight/37.85;
-            RecordTh1.width = window.innerWidth/16;
-            RecordTh1.align = "center";
-            RecordTh1.innerHTML = "P1";
-            RecordTr.appendChild(RecordTh1);
-            var RecordTh2 = document.createElement('th');
-            RecordTh2.id = "RecordTh2";
-            RecordTh2.height = window.innerHeight/37.85;
-            RecordTh2.width = window.innerWidth/16;
-            RecordTh2.align = "center";
-            RecordTh2.innerHTML = "P2";
-            RecordTr.appendChild(RecordTh2);
-            var RecordTh3 = document.createElement('th');
-            RecordTh3.id = "RecordTh3";
-            RecordTh3.height = window.innerHeight/37.85;
-            RecordTh3.width = window.innerWidth/16;
-            RecordTh3.align = "center";
-            RecordTh3.innerHTML = "interval";
-            RecordTr.appendChild(RecordTh3);
-            var RecordTh4 = document.createElement('th');
-            RecordTh4.id = "RecordTh4";
-            RecordTh4.height = window.innerHeight/37.85;
-            RecordTh4.width = window.innerWidth/16;
-            RecordTh4.align = "center";
-            RecordTh4.innerHTML = "unit";
-            RecordTr.appendChild(RecordTh4);
-            var RecordTh5 = document.createElement('th');
-            RecordTh5.id = "RecordTh5";
-            RecordTh5.height = window.innerHeight/37.85;
-            RecordTh5.width = window.innerWidth/16;
-            RecordTh5.align = "center";
-            RecordTr.appendChild(RecordTh5);
-        document.getElementById('RecordTable').appendChild(RecordTr);
     }
 
     function SwallowTable(){
@@ -994,129 +730,6 @@
     }
     
     var p1t,p2t,p3t,p4t,p5t,p6t;
-    var p1v,p2v;
-    function xdisten(e){
-        if(!p1 && !p2){
-            // 網頁紀錄使用者點選的位置
-            p1 = e;
-            var i=CanvusTop.length-1;
-            // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p1.pageX>=CanvusLeft[i] && p1.pageX<=CanvusLeft[i]+w && p1.pageY>=CanvusTop[i] && p1.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("TimeIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p1=null;
-                        return;
-                    }
-                    i--;
-                }
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p1.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p1.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            p1t = (p1.pageX-CanvusLeft[i])/(w/(duration*1000));
-            document.removeEventListener("mousedown",xdisten,false);
-            TimeAndVoltageRecordP1();
-            return;
-        }
-        else if(p1 && !p2){ 
-            // 網頁紀錄使用者點選的位置
-            p2 = e;
-            var i=CanvusTop.length-1;
-            // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p2.pageX>=CanvusLeft[i] && p2.pageX<=CanvusLeft[i]+w && p2.pageY>=CanvusTop[i] && p2.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("TimeIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p2=null;
-                        return;  
-                    }
-                    i--;
-                }
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p2.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p2.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            p2t = (p2.pageX-CanvusLeft[i])/(w/(duration*1000));
-            document.removeEventListener("mousedown",xdisten,false);
-            TimeAndVoltageRecordP2();
-            return;
-        }
-    }
-
-    function ydisten(e){
-        if(!p1 && !p2){
-            // 網頁紀錄使用者點選的位置
-            p1 = e;
-            var i=CanvusTop.length-1;
-            // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p1.pageX>=CanvusLeft[i] && p1.pageX<=CanvusLeft[i]+w && p1.pageY>=CanvusTop[i] && p1.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("VoltageIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p1=null;
-                        return;
-                    }
-                    i--;
-                }
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(0, -(p1.pageY-CanvusTop[i])+h);
-            ctx.lineTo(w, -(p1.pageY-CanvusTop[i])+h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            // 網頁於按鍵的文字框顯示點的位置，並指示紀錄該點
-            p1v = (p1.pageY-CanvusTop[i])/(h/maxV);
-            document.removeEventListener("mousedown",ydisten,false);
-            // 使用者點選紀錄的按鍵
-            TimeAndVoltageRecordP1();
-            return;
-        }
-        else if(p1 && !p2){ 
-            // 網頁紀錄使用者點選的位置
-            p2 = e;
-            var i=CanvusTop.length-1;
-            // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p2.pageX>=CanvusLeft[i] && p2.pageX<=CanvusLeft[i]+w && p2.pageY>=CanvusTop[i] && p2.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("VoltageIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p2=null;
-                        return;  
-                    }
-                    i--;
-                }
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(0, -(p2.pageY-CanvusTop[i])+h);
-            ctx.lineTo(w, -(p2.pageY-CanvusTop[i])+h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            // 網頁於按鍵的文字框顯示點的位置，並指示紀錄該點
-            p2v = (p2.pageY-CanvusTop[i])/(h/maxV);
-            document.removeEventListener("mousedown",ydisten,false);
-            // 使用者點選紀錄的按鍵
-            TimeAndVoltageRecordP2();
-            return;
-        }
-    }  
-
     var swallowFlag = 1;
     function swallowdisten(e){
         if(swallowFlag == 1) {
@@ -1294,106 +907,6 @@
         return;
     }
 
-    var TimeAndVoltageTableColumn=1;
-    function TimeAndVoltageRecordP1(){
-        document.removeEventListener("mousedown",ydisten,false);
-        document.removeEventListener("mousedown",xdisten,false);
-        // 網頁於表格顯示點的位置
-        var tr = document.createElement('tr');
-        tr.id = "TimeAndVoltageTr"+TimeAndVoltageTableColumn;
-            var td = document.createElement('td');
-            td.id = "TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_1";
-            td.height = window.innerHeight/37.85;
-            td.width = window.innerWidth/16;
-            td.align = "center";
-            if(flag =="Time") td.innerHTML = "Time";
-            else if(flag =="Voltage") td.innerHTML = "Voltage";
-            tr.appendChild(td);
-            td = document.createElement('td');
-            td.id = "TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_2";
-            td.height = window.innerHeight/37.85;
-            td.width = window.innerWidth/16;
-            td.align = "center";
-            if(flag =="Time") td.innerHTML = p1t;
-            else if(flag =="Voltage") td.innerHTML = p1v;
-            tr.appendChild(td);
-            td = document.createElement('td');
-            td.id = "TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_3";
-            td.height = window.innerHeight/37.85;
-            td.width = window.innerWidth/16;
-            td.align = "center";
-            tr.appendChild(td);
-            td = document.createElement('td');
-            td.id = "TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_4";
-            td.height = window.innerHeight/37.85;
-            td.width = window.innerWidth/16;
-            td.align = "center";
-            tr.appendChild(td);
-            td = document.createElement('td');
-            td.id = "TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_5";
-            td.height = window.innerHeight/37.85;
-            td.width = window.innerWidth/16;
-            td.align = "center";
-            if(flag =="Time") td.innerHTML = "ms";
-            else if(flag =="Voltage") td.innerHTML = "(ADC)";
-            tr.appendChild(td);
-            td = document.createElement('td');
-            td.id = "TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_6";
-            td.height = window.innerHeight/37.85;
-            td.width = window.innerWidth/16;
-            td.align = "center";
-                // 網頁於表格添增刪除 column 的按鍵
-                var DeleteButton = document.createElement('input');
-                DeleteButton.id = "TimeAndVoltageDeleteButton"+TimeAndVoltageTableColumn;
-                DeleteButton.type = "button";
-                DeleteButton.value = "delete";
-                DeleteButton.style.fontSize = window.innerHeight/63.1+"px";
-                td.appendChild(DeleteButton);
-            tr.appendChild(td);
-        document.getElementById('RecordTable').appendChild(tr);
-        // 網頁於按鍵的文字框指示選擇另一個要標記的點
-        if(flag =="Time") {
-            document.getElementById("TimeIntervalSpan").innerHTML= "請點選畫面上另一個要標記的點";
-            // 使用者點選最後一個要標記的點
-            document.addEventListener("mousedown",xdisten,false);
-        }
-        else if(flag =="Voltage") {
-            document.getElementById("VoltageIntervalSpan").innerHTML= "請點選畫面上另一個要標記的點";
-            // 使用者點選最後一個要標記的點
-            document.addEventListener("mousedown",ydisten,false);
-        }
-        // 使用者點選刪除 column 的按鍵
-        document.getElementById("TimeAndVoltageDeleteButton"+TimeAndVoltageTableColumn).onclick = Delete;
-    }
-
-    function TimeAndVoltageRecordP2(){
-        document.removeEventListener("mousedown",ydisten,false);
-        document.removeEventListener("mousedown",xdisten,false);
-        // 網頁於表格顯示點的位置
-        if(flag =="Time") {
-            document.getElementById("TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_3").innerHTML = p2t;
-            // 網頁計算間距，於表格顯示
-            document.getElementById("TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_4").innerHTML = Math.abs(p2t-p1t);
-            document.getElementById("TimeIntervalSpan").innerHTML="";
-        }
-        else if(flag =="Voltage") {
-            document.getElementById("TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_3").innerHTML = p2v;
-            // 網頁計算間距，於表格顯示
-            document.getElementById("TimeAndVoltageTd"+TimeAndVoltageTableColumn+"_4").innerHTML = Math.abs(p2v-p1v);
-            document.getElementById("VoltageIntervalSpan").innerHTML="";
-        }
-        TimeAndVoltageTableColumn ++;
-        p1 = null;
-        p2 = null;
-        // 網頁可用標記按鍵
-        document.getElementById("TimeIntervalButton").disabled=false;
-        document.getElementById("VoltageIntervalButton").disabled=false;
-        document.getElementById("SwallowIntervalButton").disabled=false;
-        // 網頁添增將資料存入所有紀錄中的按鍵
-        // 網頁添增下載此次表格資料的按鍵
-        addSaveAndDownloadButton();
-    }
-
     var SwallowTableColumn=1;
     var c1,i1,c2,i2,c3,total;
     function SwallowRecord(){
@@ -1554,8 +1067,6 @@
             p6=null;
             swallowFlag=1;
             // 網頁可用標記按鍵
-            document.getElementById("TimeIntervalButton").disabled=false;
-            document.getElementById("VoltageIntervalButton").disabled=false;
             document.getElementById("SwallowIntervalButton").disabled=false;
             // 網頁添增將資料存入所有紀錄中的按鍵
             // 網頁添增下載此次表格資料的按鍵
@@ -1564,8 +1075,6 @@
     }
 
     function Delete(){
-        document.removeEventListener("mousedown",ydisten,false);
-        document.removeEventListener("mousedown",xdisten,false);
         document.removeEventListener("mousedown",swallowdisten,false);
         p1=null;
         p2=null;
@@ -1574,16 +1083,11 @@
         p5=null;
         p6=null;
         // 網頁於表格刪除 column
-        if(flag =="Time"||flag =="Voltage") document.getElementById('RecordTable').removeChild(document.getElementById("TimeAndVoltageTr" + this.id.substring(26)));
-        else if(flag =="Swallow") document.getElementById('RecordTable').removeChild(document.getElementById("SwallowTr" + this.id.substring(19)));
+        document.getElementById('RecordTable').removeChild(document.getElementById("SwallowTr" + this.id.substring(19)));
         redraw();
         // 網頁可用標記按鍵
-        document.getElementById("TimeIntervalButton").disabled=false;
-        document.getElementById("VoltageIntervalButton").disabled=false;
         document.getElementById("SwallowIntervalButton").disabled=false;
         // 網頁將其他按鍵的文字框清空
-        document.getElementById("TimeIntervalSpan").innerHTML="";
-        document.getElementById("VoltageIntervalSpan").innerHTML="";
         document.getElementById("SwallowIntervalSpan").innerHTML="";
         swallowFlag=1;
     }
@@ -1593,18 +1097,6 @@
             var SaveTr = document.createElement('tr');
             SaveTr.id = "SaveTr";
             document.getElementById('SaveTable').appendChild(SaveTr);
-                var SaveTd0 = document.createElement('td');
-                SaveTd0.id = "SaveTd0";
-                SaveTd0.align = "center";
-                SaveTd0.width = window.innerWidth/11.034;
-                document.getElementById('SaveTr').appendChild(SaveTd0);
-                    var DownloadThisButton = document.createElement('input');
-                    DownloadThisButton.id = 'DownloadThisButton';
-                    DownloadThisButton.type = "button";
-                    DownloadThisButton.style.width = "97%";
-                    DownloadThisButton.value = "下載此表格";
-                    DownloadThisButton.style.fontSize=window.innerHeight/63.1+"px";
-                    document.getElementById('SaveTd0').appendChild(DownloadThisButton);
                 var SaveTd1 = document.createElement('td');
                 SaveTd1.id = "SaveTd1";
                 SaveTd1.align = "center";
@@ -1619,37 +1111,26 @@
                     document.getElementById('SaveTd1').appendChild(SaveIntoAllButton);
         // 使用者點選將資料存入所有紀錄中的按鍵
         document.getElementById('SaveIntoAllButton').onclick = SaveIntoAll;
-        // 使用者點選下載此次表格資料的按鍵
-        document.getElementById('DownloadThisButton').onclick = DownloadThis;
     }
 
     function SaveIntoAll(){
         redraw();
         if(confirm("資料儲存後，表格就會清空。確定要執行嗎?")==true){
             csv="";
-            if(flag=="Time"||flag=="Voltage"){
-                if(allTimeAndVoltage=="") csv="File name,Kind,P1,P2,Interval,Unit\n";
-                for(var i=1;i<TimeAndVoltageTableColumn;i++){
+            if(allSwallow=="") csv="File name,T1,T2,T3,T4,T5,T6,C1,I1,C2,I2,C3,Total\n";
+            for(i=1;i<SwallowTableColumn;i++){
+                if(document.getElementById("SwallowTr"+i)){
                     csv+=document.getElementById("files").files[0].name+",";
-                    for(var j=1;j<=4;j++) csv+=document.getElementById("TimeAndVoltageTd"+i+"_"+j).innerHTML+",";
-                    csv+=document.getElementById("TimeAndVoltageTd"+i+"_"+j).innerHTML+"\n";
+                    for(j=1;j<=11;j++) {
+                        if(document.getElementById("SwallowTd"+i+"_"+j)) csv+=document.getElementById("SwallowTd"+i+"_"+j).innerHTML+",";
+                    }
+                    if(document.getElementById("SwallowTd"+i+"_"+j)) csv+=document.getElementById("SwallowTd"+i+"_"+j).innerHTML+"\n";
                 }
-                allTimeAndVoltage += csv;
             }
-            else if(flag=="Swallow"){
-                if(allSwallow=="") csv="File name,T1,T2,T3,T4,T5,T6,C1,I1,C2,I2,C3,Total\n";
-                for(var i=1;i<SwallowTableColumn;i++){
-                    csv+=document.getElementById("files").files[0].name+",";
-                    for(var j=1;j<=11;j++) csv+=document.getElementById("SwallowTd"+i+"_"+j).innerHTML+",";
-                    csv+=document.getElementById("SwallowTd"+i+"_"+j).innerHTML+"\n";
-                }
-                allSwallow += csv;
-            }
+            allSwallow += csv;
             // 網頁將表格的資料清除
             document.getElementById('RecordTable').innerHTML="";
-            flag = "";
             csv="";
-            TimeAndVoltageTableColumn=1;
             SwallowTableColumn=1;
             if(!document.getElementById('SaveTd2')){
                 // 網頁添增下載所有紀錄資料的按鍵
@@ -1671,74 +1152,8 @@
         }
     }
 
-    function DownloadThis(){
-        redraw();
-        if(flag=="Time"||flag=="Voltage"){
-            for(var i=1;i<TimeAndVoltageTableColumn;i++){
-                csv+=document.getElementById("files").files[0].name+",";
-                for(var j=1;j<=4;j++) csv+=document.getElementById("TimeAndVoltageTd"+i+"_"+j).innerHTML+",";
-                csv+=document.getElementById("TimeAndVoltageTd"+i+"_"+j).innerHTML+"\n";
-            }
-            var hiddenElement = document.createElement('a');
-            // 網頁將此次表格的資料放入 .csv 檔與 .txt 檔
-            var blob = new Blob(["\ufeff" +csv],{type: 'text/csv;charset=utf-8;'});
-            hiddenElement.href = URL.createObjectURL(blob);
-            hiddenElement.target = '_blank';
-            // 網頁抓取當下時間作為 .csv 檔與 .txt 檔的檔名
-            var name = new Date().toISOString();
-            hiddenElement.download = name+'.csv';
-            hiddenElement.click();
-            hiddenElement = document.createElement('a');
-            hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-            hiddenElement.target = '_blank';
-            name = new Date().toISOString();
-            hiddenElement.download = name+'.txt';
-            // 網頁自動下載 .csv 檔與 .txt 檔
-            hiddenElement.click();
-        }
-        else if(flag=="Swallow"){
-            for(var i=1;i<SwallowTableColumn;i++){
-                csv+=document.getElementById("files").files[0].name+",";
-                for(var j=1;j<=11;j++) csv+=document.getElementById("SwallowTd"+i+"_"+j).innerHTML+",";
-                csv+=document.getElementById("SwallowTd"+i+"_"+j).innerHTML+"\n";
-            }
-            var hiddenElement = document.createElement('a');
-            // 網頁將此次表格的資料放入 .csv 檔與 .txt 檔
-            var blob = new Blob(["\ufeff" +csv],{type: 'text/csv;charset=utf-8;'});
-            hiddenElement.href = URL.createObjectURL(blob);
-            hiddenElement.target = '_blank';
-            // 網頁抓取當下時間作為 .csv 檔與 .txt 檔的檔名
-            var name = new Date().toISOString();
-            hiddenElement.download = name+'.csv';
-            hiddenElement.click();
-            hiddenElement = document.createElement('a');
-            hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
-            hiddenElement.target = '_blank';
-            name = new Date().toISOString();
-            hiddenElement.download = name+'.txt';
-            // 網頁自動下載 .csv 檔與 .txt 檔
-            hiddenElement.click();
-        }
-    }
-
     function DownloadAll(){
         if(confirm("下載所有紀錄後，紀錄就會全部清除。確定要執行嗎?")==true){
-            if(allTimeAndVoltage!=""){
-                var hiddenElement = document.createElement('a');
-                // 網頁將此次表格的資料放入 .csv 檔與 .txt 檔
-                var blob = new Blob(["\ufeff" + allTimeAndVoltage],{type: 'text/csv;charset=utf-8;'});
-                hiddenElement.href = URL.createObjectURL(blob);
-                hiddenElement.target = '_blank';
-                // 網頁抓取當下時間作為 .csv 檔與 .txt 檔的檔名
-                hiddenElement.download = 'TimeAndVoltage.csv';
-                hiddenElement.click();
-                hiddenElement = document.createElement('a');
-                hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(allTimeAndVoltage);
-                hiddenElement.target = '_blank';
-                hiddenElement.download = 'TimeAndVoltage.txt';
-                // 網頁自動下載 .csv 檔與 .txt 檔
-                hiddenElement.click();
-            }
             if(allSwallow!=""){
                 var hiddenElement = document.createElement('a');
                 // 網頁將此次表格的資料放入 .csv 檔與 .txt 檔
@@ -1746,18 +1161,11 @@
                 hiddenElement.href = URL.createObjectURL(blob);
                 hiddenElement.target = '_blank';
                 // 網頁抓取當下時間作為 .csv 檔與 .txt 檔的檔名
-                hiddenElement.download = 'Swallow.csv';
-                hiddenElement.click();
-                hiddenElement = document.createElement('a');
-                hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(allSwallow);
-                hiddenElement.target = '_blank';
-                hiddenElement.download = 'Swallow.txt';
-                // 網頁自動下載 .csv 檔與 .txt 檔
+                var name = new Date().toISOString();
+                hiddenElement.download = name+'.csv';
                 hiddenElement.click();
             }
             allSwallow="";
-            allTimeAndVoltage="";
-            document.getElementById("original1").value="";
             document.getElementById("original2").value="";
         }
     }
