@@ -583,13 +583,13 @@
     var p1,p2,p3,p4,p5,p6;
     function SwallowInterval(){
         // 網頁重製畫布，去除先前標記的點
-        redraw();
         p1=null;
         p2=null;  
         p3=null;
         p4=null;  
         p5=null;
-        p6=null;    
+        p6=null; 
+        redraw();
         // 網頁將其他按鍵的文字框清空
         document.getElementById("SwallowIntervalSpan").innerHTML="";
         // 網頁禁用標記按鍵
@@ -628,6 +628,35 @@
             for (i = 0; i < duration*samplefreq; i++) {
                 ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
             }
+            ctx.stroke();
+
+            ctx.beginPath();
+            if(p1) {
+                ctx.moveTo(p1.pageX-CanvusLeft[0], 0);
+                ctx.lineTo(p1.pageX-CanvusLeft[0], h);
+            }
+            if(p2) {
+                ctx.moveTo(p2.pageX-CanvusLeft[0], 0);
+                ctx.lineTo(p2.pageX-CanvusLeft[0], h);
+            }
+            if(p3) {
+                ctx.moveTo(p3.pageX-CanvusLeft[0], 0);
+                ctx.lineTo(p3.pageX-CanvusLeft[0], h);
+            }
+            if(p4) {
+                ctx.moveTo(p4.pageX-CanvusLeft[0], 0);
+                ctx.lineTo(p4.pageX-CanvusLeft[0], h);
+            }
+            if(p5) {
+                ctx.moveTo(p5.pageX-CanvusLeft[0], 0);
+                ctx.lineTo(p5.pageX-CanvusLeft[0], h);
+            }
+            if(p6) {
+                ctx.moveTo(p6.pageX-CanvusLeft[0], 0);
+                ctx.lineTo(p6.pageX-CanvusLeft[0], h);
+            }
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
         }
     }
@@ -725,8 +754,15 @@
             RecordTh12.height = window.innerHeight/37.85;
             RecordTh12.width = window.innerWidth/22.857;
             RecordTh12.align = "center";
+                var RemoveButton = document.createElement('input');
+                RemoveButton.id = 'RemoveButton';
+                RemoveButton.type = "button";
+                RemoveButton.value = "remove";
+                RemoveButton.style.fontSize = window.innerHeight/63.1+"px";
+                RecordTh12.appendChild(RemoveButton);
             RecordTr.appendChild(RecordTh12);
         document.getElementById('RecordTable').appendChild(RecordTr);
+        document.getElementById("RemoveButton").onclick = Remove;
     }
     
     var p1t,p2t,p3t,p4t,p5t,p6t;
@@ -907,6 +943,49 @@
         return;
     }
 
+    function Remove(){
+        if(swallowFlag == 1){
+            p6=null;
+            SwallowTableColumn--;
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_6").innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_7").innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_8").innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_9").innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_10").innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_11").innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_12").innerHTML="";
+            document.addEventListener("mousedown",swallowdisten,false);
+            document.getElementById("SwallowIntervalSpan").innerHTML= "請點選畫面上第五個要標記的點";
+            swallowFlag=6;
+        }
+        else if(swallowFlag == 2){
+            p1=null;
+            document.getElementById("SwallowTr"+SwallowTableColumn).innerHTML="";
+            swallowFlag--;
+        }
+        else if(swallowFlag == 3){
+            p2=null;
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_2").innerHTML="";
+            swallowFlag--;
+        }
+        else if(swallowFlag == 4){
+            p3=null;
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_3").innerHTML="";
+            swallowFlag--;
+        }
+        else if(swallowFlag == 5){
+            p4=null;
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_4").innerHTML="";
+            swallowFlag--;
+        }
+        else if(swallowFlag == 6){
+            p5=null;
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_5").innerHTML="";
+            swallowFlag--;
+        }
+        redraw();
+    }
+
     var SwallowTableColumn=1;
     var c1,i1,c2,i2,c3,total;
     function SwallowRecord(){
@@ -996,7 +1075,7 @@
                     var DeleteButton = document.createElement('input');
                     DeleteButton.id = "SwallowDeleteButton"+SwallowTableColumn;
                     DeleteButton.type = "button";
-                    DeleteButton.value = "delete";
+                    DeleteButton.value = " delete ";
                     DeleteButton.style.fontSize = window.innerHeight/63.1+"px";
                     td.appendChild(DeleteButton);
                 tr.appendChild(td);
@@ -1059,12 +1138,6 @@
             document.getElementById("SwallowTd"+SwallowTableColumn+"_12").innerHTML+=total.toFixed(3);
             document.getElementById("SwallowIntervalSpan").innerHTML="";
             SwallowTableColumn++;
-            p1=null;
-            p2=null;
-            p3=null;
-            p4=null;
-            p5=null;
-            p6=null;
             swallowFlag=1;
             // 網頁可用標記按鍵
             document.getElementById("SwallowIntervalButton").disabled=false;
@@ -1114,6 +1187,12 @@
     }
 
     function SaveIntoAll(){
+        p1=null;
+        p2=null;
+        p3=null;
+        p4=null;
+        p5=null;
+        p6=null;
         redraw();
         if(confirm("資料儲存後，表格就會清空。確定要執行嗎?")==true){
             csv="";
@@ -1130,6 +1209,7 @@
             allSwallow += csv;
             // 網頁將表格的資料清除
             document.getElementById('RecordTable').innerHTML="";
+            SwallowTable();
             csv="";
             SwallowTableColumn=1;
             if(!document.getElementById('SaveTd2')){
