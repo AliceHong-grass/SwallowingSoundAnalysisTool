@@ -6,23 +6,36 @@
   </head>
   <body>
       <!--網頁顯示選擇檔案的按鍵-->
-      <p style="position: absolute;top: 0%;left:49%;transform: translateX(-50%);font-size: 75%;">
-        請選擇要添增資料的 Swallow.csv (非必填)：<input type="file" id="original2" accept=".csv" style='width:20%; border:1px solid #BBB;'>
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <!--只讓使用者選擇一個 .wav 檔-->
-        請選擇要標記的 wav 檔：<input type="file" id="files" accept=".wav" style='width:20%; border:1px solid #BBB;'>
-      </p>
+      <table align="center" style="width:95%;">
+        <tr>
+            <td style="text-align: center; font-size: 75%;">
+                請選擇要添增資料的 Swallow.csv (非必填)：<input type="file" id="original2" accept=".csv" style='border:1px solid #BBB;'>
+            </td>
+            <td style="text-align: center; font-size: 75%;">
+                請選擇要標記的 wav 檔：<input type="file" id="files" accept=".wav" style='border:1px solid #BBB;'><!--只讓使用者選擇一個 .wav 檔-->
+            </td>
+            <td style="text-align: left; font-size: 75%;">
+                <audio controls id="audio_player" style='-webkit-transform: scale(0.8); transform: scale(0.8); height: 30px;'></audio>
+            </td>
+        </tr>
+      </table>
   </body>
   <script>
     document.getElementById("original2").style.fontSize = window.innerHeight/63.1+"px";
     document.getElementById("files").style.fontSize = window.innerHeight/63.1+"px";
-    var ECGData_splite=[];
-    var ECGClass=[];
+    var ECGData_splite;
+    var ECGClass;
     var maxV;
     var maxT;
     var duration;
     var samplefreq;
     var allSwallow= "";
+    var yw = window.innerWidth/53.333;
+    var yh = window.innerHeight/2.87;
+    var xw = window.innerWidth/1.081;
+    var xh = window.innerHeight/75.7;
+    var w = window.innerWidth/1.103;
+    var h = window.innerHeight/2.99;
 
     document.getElementById("original2").onchange = function() {
         // 建立 FileReader 物件
@@ -54,13 +67,17 @@
         }
         return result;
     };
+
     // 網頁讀取使用者選擇的 .wav 檔
     document.getElementById("files").onchange = function() {
-        for(var i=0;i<ECGClass.length;i++){
-            if(document.getElementById(ECGClass[i]+'_CanvusTable')) document.getElementById(ECGClass[i]+'_CanvusTable').remove();
-        }
-        ECGData_splite=[];
-        ECGClass=[];
+        if(document.getElementById(ECGClass+'_CanvusTable')) document.getElementById(ECGClass+'_CanvusTable').remove();
+        ECGData_splite = "";
+        ECGClass = "";
+        var files = this.files;
+        var file = URL.createObjectURL(files[0]); 
+        audio_player.src = file; 
+        document.getElementById("audio_player").onplaying = drawTimeLine;
+        document.getElementById("audio_player").onpause = stopTimeLine;
         // 建立 FileReader 物件
         let fileReader = new FileReader();
         // 載入檔案
@@ -104,10 +121,8 @@
             for(let i=0; i<value.length; i+=wav.NUM_CHANNELS){
                 for(let j=0; j<wav.NUM_CHANNELS; j++){ channels[j].push(value[i+j]); }
             }
-            for(let i=0; i<wav.NUM_CHANNELS; i++){
-                ECGData_splite.push(channels[i]);
-                ECGClass.push(document.getElementById("files").files[0].name+"_"+i);
-            }
+            ECGData_splite=channels[0];
+            ECGClass = document.getElementById("files").files[0].name;
             // 網頁計算出總時間長
             maxT = (value.length / wav.NUM_CHANNELS) /samplefreq;
             duration = maxT;
@@ -128,13 +143,39 @@
             // 網頁添增紀錄的按鍵，並暫時隱藏
             addAnnotationButton();
         };
+        
+    }
+
+    var go;
+
+    function drawTimeLine(){
+        if(duration/maxT<0.15) document.getElementById("audio_player").playbackRate = 0.15;
+        else document.getElementById("audio_player").playbackRate = duration/maxT;
+        go = setInterval(function(){
+            var g = document.getElementById("audio_player").currentTime*samplefreq-theta;
+            redraw();
+            var ctx = document.getElementById(ECGClass).getContext("2d");
+            ctx.strokeStyle = 'gray';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(g*(w/(samplefreq*duration)), 0);
+            ctx.lineTo(g*(w/(samplefreq*duration)), h);
+            ctx.stroke();
+            if(g>samplefreq*duration) stopTimeLine();
+        }, 100);
+    }
+
+    function stopTimeLine(){
+        clearInterval(go);
+        document.getElementById("audio_player").pause();
+        document.getElementById("audio_player").currentTime = Math.floor(theta*(1/samplefreq));
     }
 
     function addContralCanvusButton(){
         var ContralCanvusP = document.createElement('p');
         ContralCanvusP.id = 'ContralCanvusP';
         ContralCanvusP.style.position = "absolute";
-        ContralCanvusP.style.top = "6%";
+        ContralCanvusP.style.top = "5%";
         ContralCanvusP.style.left = "32%";
         ContralCanvusP.style.fontSize = window.innerHeight/63.1+"px";
         document.body.appendChild(ContralCanvusP);
@@ -220,77 +261,96 @@
         }
     }
 
-    var CanvusLeft =[];
-    var CanvusTop =[];
+    var CanvusLeft;
+    var CanvusTop;
     function addCanvus(codeDisplay){
-        CanvusTop = [];
-        CanvusLeft = [];
-        for(var i=0;i<codeDisplay.length;i++){
-            var CanvusTable = document.createElement('table'); 
-            CanvusTable.id = codeDisplay[i]+'_CanvusTable';
-            CanvusTable.style.position = "absolute";
-            CanvusTable.style.left = "1%";
-            //CanvusTable.style.top = 70 + 570*i +"px";
-            CanvusTable.style.top = "9%";
-            CanvusTable.style.marginLeft = "auto";
-            CanvusTable.style.marginRight = "auto";
-            document.body.appendChild(CanvusTable);
-            var CanvusTr0 = document.createElement('tr');
-            CanvusTr0.id = codeDisplay[i] + "_CanvusTr0";
-            CanvusTr0.innerHTML = "(ADC)";
-            CanvusTr0.style.fontSize = window.innerHeight/63.1+"px";
-            document.getElementById(codeDisplay[i]+'_CanvusTable').appendChild(CanvusTr0);
+        CanvusTop = "";
+        CanvusLeft = "";
+        var CanvusTable = document.createElement('table'); 
+        CanvusTable.id = codeDisplay+'_CanvusTable';
+        CanvusTable.style.position = "absolute";
+        CanvusTable.style.left = "1%";
+        CanvusTable.style.top = "10%";
+        CanvusTable.style.marginLeft = "auto";
+        CanvusTable.style.marginRight = "auto";
+        document.body.appendChild(CanvusTable);
             var CanvusTr1 = document.createElement('tr');
-            CanvusTr1.id = codeDisplay[i] + "_CanvusTr1";
-            document.getElementById(codeDisplay[i]+'_CanvusTable').appendChild(CanvusTr1);
-            var CanvusTdY = document.createElement('td');
-            CanvusTdY.id = codeDisplay[i] + "_CanvusTdY";
-            CanvusTdY.align = "center";
-            document.getElementById(codeDisplay[i]+'_CanvusTr1').appendChild(CanvusTdY);
-            var CanvusY = document.createElement('canvas');
-            CanvusY.id = codeDisplay[i]+'_Y';
-            CanvusY.width = window.innerWidth/53.333;
-            CanvusY.height = window.innerHeight/1.514;
-            CanvusY.style.fontSize = window.innerHeight/63.1+"px";
-            document.getElementById(codeDisplay[i]+'_CanvusTdY').appendChild(CanvusY);
-            var CanvusTd = document.createElement('td');
-            CanvusTd.id = codeDisplay[i]+"_CanvusTd";
-            CanvusTd.align = "center";
-            document.getElementById(codeDisplay[i]+'_CanvusTr1').appendChild(CanvusTd);
-            var Canvus = document.createElement('canvas');
-            Canvus.id = codeDisplay[i];
-            Canvus.width = window.innerWidth/1.103;
-            Canvus.height = window.innerHeight/1.545;
-            Canvus.style.backgroundColor = "white";
-            Canvus.style.border = "1px solid black";
-            document.getElementById(codeDisplay[i]+'_CanvusTd').appendChild(Canvus);
-            var CanvusTdNone1 = document.createElement('td');
-            CanvusTdNone1.id = codeDisplay[i]+"_CanvusTdNone1";
-            document.getElementById(codeDisplay[i]+'_CanvusTr1').appendChild(CanvusTdNone1);
+            CanvusTr1.id = codeDisplay + "_CanvusTr1";
+            document.getElementById(codeDisplay+'_CanvusTable').appendChild(CanvusTr1);
+                var CanvusTdY = document.createElement('td');
+                CanvusTdY.id = codeDisplay + "_CanvusTdY";
+                CanvusTdY.align = "center";
+                document.getElementById(codeDisplay+'_CanvusTr1').appendChild(CanvusTdY);
+                    var CanvusY = document.createElement('canvas');
+                    CanvusY.id = codeDisplay+'_Y';
+                    CanvusY.width = yw;
+                    CanvusY.height = yh;
+                    document.getElementById(codeDisplay+'_CanvusTdY').appendChild(CanvusY);
+                var CanvusTd = document.createElement('td');
+                CanvusTd.id = codeDisplay+"_CanvusTd";
+                CanvusTd.align = "center";
+                document.getElementById(codeDisplay+'_CanvusTr1').appendChild(CanvusTd);
+                    var Canvus = document.createElement('canvas');
+                    Canvus.id = codeDisplay;
+                    Canvus.width = w;
+                    Canvus.height = h;
+                    Canvus.style.backgroundColor = "white";
+                    Canvus.style.border = "1px solid black";
+                    document.getElementById(codeDisplay+'_CanvusTd').appendChild(Canvus);
+                var CanvusTdNone1 = document.createElement('td');
+                CanvusTdNone1.id = codeDisplay+"_CanvusTdNone1";
+                document.getElementById(codeDisplay+'_CanvusTr1').appendChild(CanvusTdNone1);
             var CanvusTr2 = document.createElement('tr');
-            CanvusTr2.id = codeDisplay[i] + "_CanvusTr2";
-            document.getElementById(codeDisplay[i]+'_CanvusTable').appendChild(CanvusTr2);
-            var CanvusTdNone2 = document.createElement('td');
-            CanvusTdNone2.id = codeDisplay[i] + "_CanvusTdNone2";
-            document.getElementById(codeDisplay[i]+'_CanvusTr2').appendChild(CanvusTdNone2);
-            var CanvusTdX = document.createElement('td');
-            CanvusTdX.id = codeDisplay[i] + "_CanvusTdX";
-            document.getElementById(codeDisplay[i]+'_CanvusTr2').appendChild(CanvusTdX);
-            var CanvusX = document.createElement('canvas');
-            CanvusX.id = codeDisplay[i]+'_X';
-            CanvusX.width = window.innerWidth/1.081;
-            CanvusX.height = window.innerHeight/75.7;
-            CanvusX.style.fontSize = window.innerHeight/63.1+"px";
-            document.getElementById(codeDisplay[i] + "_CanvusTdX").appendChild(CanvusX);
-            var CanvusTdXUnit = document.createElement('td');
-            CanvusTdXUnit.id = codeDisplay[i] + "_CanvusTdXUnit";
-            CanvusTdXUnit.style.fontSize = window.innerHeight/63.1+"px";
-            document.getElementById(codeDisplay[i]+'_CanvusTr2').appendChild(CanvusTdXUnit);
-            document.getElementById(codeDisplay[i] + "_CanvusTdXUnit").innerHTML += "(Sec)";
-            var rect = document.getElementById(codeDisplay[i]).getBoundingClientRect();
-            CanvusLeft.push(rect.left);
-            CanvusTop.push(rect.top);
-        }
+            CanvusTr2.id = codeDisplay + "_CanvusTr2";
+            document.getElementById(codeDisplay +'_CanvusTable').appendChild(CanvusTr2);
+                var CanvusTdNone2 = document.createElement('td');
+                CanvusTdNone2.id = codeDisplay + "_CanvusTdNone2";
+                document.getElementById(codeDisplay +'_CanvusTr2').appendChild(CanvusTdNone2);
+                var CanvusTdX = document.createElement('td');
+                CanvusTdX.id = codeDisplay + "_CanvusTdX";
+                document.getElementById(codeDisplay +'_CanvusTr2').appendChild(CanvusTdX);
+                    var CanvusX = document.createElement('canvas');
+                    CanvusX.id = codeDisplay +'_X';
+                    CanvusX.width = xw;
+                    CanvusX.height = xh;
+                    document.getElementById(codeDisplay + "_CanvusTdX").appendChild(CanvusX);
+                var CanvusTdXUnit = document.createElement('td');
+                CanvusTdXUnit.id = codeDisplay + "_CanvusTdXUnit";
+                CanvusTdXUnit.style.fontSize = window.innerHeight/63.1+"px";
+                document.getElementById(codeDisplay +'_CanvusTr2').appendChild(CanvusTdXUnit);
+                document.getElementById(codeDisplay + "_CanvusTdXUnit").innerHTML += "(Sec)";
+
+            var CanvusTr3 = document.createElement('tr');
+            CanvusTr3.id = codeDisplay + "_CanvusTr3";
+            document.getElementById(codeDisplay +'_CanvusTable').appendChild(CanvusTr3);
+                var SpectrogramsTdY = document.createElement('td');
+                SpectrogramsTdY.id = codeDisplay + "_SpectrogramsTdY";
+                SpectrogramsTdY.align = "center";
+                document.getElementById(codeDisplay+'_CanvusTr3').appendChild(SpectrogramsTdY);
+                    var SpectrogramsY = document.createElement('canvas');
+                    SpectrogramsY.id = codeDisplay+'_SpectrogramsY';
+                    SpectrogramsY.width = yw;
+                    SpectrogramsY.height = yh;
+                    document.getElementById(codeDisplay+'_SpectrogramsTdY').appendChild(SpectrogramsY);
+                var SpectrogramsTd = document.createElement('td');
+                SpectrogramsTd.id = codeDisplay+"_SpectrogramsTd";
+                SpectrogramsTd.align = "center";
+                document.getElementById(codeDisplay+'_CanvusTr3').appendChild(SpectrogramsTd);
+                    var Spectrograms = document.createElement('canvas');
+                    Spectrograms.id = codeDisplay+"_Spectrograms";
+                    Spectrograms.width = w;
+                    Spectrograms.height = h;
+                    Spectrograms.style.backgroundColor = "white";
+                    Spectrograms.style.border = "1px solid black";
+                    document.getElementById(codeDisplay+'_SpectrogramsTd').appendChild(Spectrograms);
+                var CanvusTdNone3 = document.createElement('td');
+                CanvusTdNone3.id = codeDisplay+"_CanvusTdNone3";
+                document.getElementById(codeDisplay+'_CanvusTr3').appendChild(CanvusTdNone3);
+
+        var rect = document.getElementById(codeDisplay).getBoundingClientRect();
+        CanvusLeft=rect.left;
+        CanvusTop=rect.top;
+
         document.getElementById("StartOfRecordButton").onclick = init;
         document.getElementById("EndOfRecordButton").onclick = final;
         document.getElementById("PreviousWindowButton").onclick = previousWave;
@@ -298,203 +358,102 @@
         document.getElementById("GoToButton").onclick =  moveTo;
     }
 
-    var yw = window.innerWidth/53.333;
-    var yh = window.innerHeight/1.514;
-    var xw = window.innerWidth/1.081;
-    var xh = window.innerHeight/75.7;
-    var w = window.innerWidth/1.103;
-    var h = window.innerHeight/1.545;;
     var theta=0;
     function init() {
-        for(var j=0;j<ECGClass.length;j++){
-            var ctx_y = document.getElementById(ECGClass[j]+'_Y').getContext("2d");
-            var ctx = document.getElementById(ECGClass[j]).getContext("2d");
-            ctx_x = document.getElementById(ECGClass[j]+'_X').getContext("2d");
-            var data = ECGData_splite[j];
-            ctx.setTransform(1,0,0,-1,0,h);
-            ctx.clearRect(0, 0, w, h);
-            ctx_y.clearRect(0, 0, yw, yh);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            var n=0;
-            for (var y = 0; y <= h; y += h/20) {
-                ctx.moveTo(0, y);
-                ctx.lineTo(w, y);
-                ctx_y.fillText((-1.0+n*0.1).toFixed(2),0,h-y+(window.innerHeight/75.7));
-                n=n+1;
-            }
-            ctx.stroke();
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx_x.clearRect( 0,0, xw, xh);
-            ctx_x.beginPath();
-            for (var x = 0; x <= w; x += w/duration) {
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, h);
-                var a = x/(w/duration);
-                ctx_x.fillText(a.toFixed(2),x,window.innerHeight/80);
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, h/2);
-            ctx.strokeStyle = `rgb(0, 0, 0)`;
-            ctx.lineWidth = 1;
-            for (let i = 0; i < samplefreq*duration; i++) {
-                ctx.lineTo(i*(w/(samplefreq*duration)), (data[i]*h/maxV)+h/2.0);
-            }
-            ctx.stroke();
-            theta = 0;
-            document.getElementById("GoToInput").value = "00:00:00";
-        } 
+        var ctx_y = document.getElementById(ECGClass+'_Y').getContext("2d");
+        var ctx = document.getElementById(ECGClass).getContext("2d");
+        ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
+        var data = ECGData_splite;
+        ctx.setTransform(1,0,0,-1,0,h);
+        ctx.clearRect(0, 0, w, h);
+        ctx_y.clearRect(0, 0, yw, yh);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        var n=0;
+        for (var y = 0; y <= h; y += h/20) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx_y.fillText((-1.0+n*0.1).toFixed(2),0,h-y+(window.innerHeight/75.7));
+            n=n+1;
+        }
+        ctx.stroke();
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx_x.clearRect( 0,0, xw, xh);
+        ctx_x.beginPath();
+        for (var x = 0; x <= w; x += w/duration) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            var a = x/(w/duration);
+            ctx_x.fillText(a.toFixed(2),x,window.innerHeight/80);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, h/2);
+        ctx.strokeStyle = `rgb(0, 0, 0)`;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < samplefreq*duration; i++) {
+            ctx.lineTo(i*(w/(samplefreq*duration)), (data[i]*h/maxV)+h/2.0);
+        }
+        ctx.stroke();
+        theta = 0;
+        document.getElementById("audio_player").currentTime = 0;
+        document.getElementById("GoToInput").value = "00:00:00";
     }
   
     function final(){
-        for(var j=0;j<ECGClass.length;j++){
-            var ctx = document.getElementById(ECGClass[j]).getContext("2d");
-            var ctx_x = document.getElementById(ECGClass[j]+'_X').getContext("2d");
-            data = ECGData_splite[j];
-            ctx.setTransform(1,0,0,-1,0,h);
-            ctx.clearRect(0, 0, w, h);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            for (var y = h/20; y <= h; y += h/20) {
-                ctx.moveTo(0, y);
-                ctx.lineTo(w, y);
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            ctx_x.clearRect( 0,0, xw, xh);
-            ctx_x.beginPath();
-            var a=maxT;
-            for (var x = w; x >= 0; x -= w/duration) {
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, h);
-                ctx_x.fillText(a.toFixed(2),x,window.innerHeight/80);
-                a = a - 1;
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(w, h/2);
-            ctx.strokeStyle = `rgb(0, 0, 0)`;
-            ctx.lineWidth = 1;
-            for (var i = 0; i <= samplefreq*duration; i++) {
-                ctx.lineTo(w-i*(w/(samplefreq*duration)), (data[data.length-i]*h/maxV)+h/2.0);
-            }
-            ctx.stroke();
-            theta=data.length-samplefreq*duration;
-            var hour = maxT-duration;
-            if(hour<10) hour = "0" + hour;
-            document.getElementById("GoToInput").value= hour + ":00:00";
+        var ctx = document.getElementById(ECGClass).getContext("2d");
+        var ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
+        data = ECGData_splite;
+        ctx.setTransform(1,0,0,-1,0,h);
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var y = h/20; y <= h; y += h/20) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
         }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx_x.clearRect( 0,0, xw, xh);
+        ctx_x.beginPath();
+        var a=maxT;
+        for (var x = w; x >= 0; x -= w/duration) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx_x.fillText(a.toFixed(2),x,window.innerHeight/80);
+            a = a - 1;
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(w, h/2);
+        ctx.strokeStyle = `rgb(0, 0, 0)`;
+        ctx.lineWidth = 1;
+        for (var i = 0; i <= samplefreq*duration; i++) {
+            ctx.lineTo(w-i*(w/(samplefreq*duration)), (data[data.length-i]*h/maxV)+h/2.0);
+        }
+        ctx.stroke();
+        theta=data.length-samplefreq*duration;
+        var t = maxT-duration;
+        var hour = Math.floor(t/3600);
+        if(hour<10) hour = "0" + hour;
+        var min = Math.floor((t - hour*3600)/60);
+        if(min<10) min = "0" + min;
+        var sec = t - hour*3600 - min*60;
+        if(sec<10) sec = "0" + sec;
+        document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
+        document.getElementById("audio_player").currentTime = maxT-duration;
     }
 
     function nextWave() {
         if(theta+samplefreq*duration*2<maxT*samplefreq){
             theta+=samplefreq*duration;
-            for(var j=0;j<ECGClass.length;j++){
-                ctx = document.getElementById(ECGClass[j]).getContext("2d");
-                ctx_x = document.getElementById(ECGClass[j]+'_X').getContext("2d");
-                ctx_x.font = "12px Arial";
-                data = ECGData_splite[j];
-                ctx.setTransform(1,0,0,-1,0,h);
-                ctx.clearRect(0, 0, w, h);
-                ctx.strokeStyle = 'red';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                for (var y = h/20; y <= h; y += h/20) {
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(w, y);
-                }
-                ctx.stroke();
-                ctx_x.clearRect( 0, 0, xw, xh);
-                ctx.beginPath();
-                ctx_x.beginPath();
-                for (var x = theta%samplefreq; x < w+(samplefreq*duration); x += w/duration) {
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, h);
-                    var a = x/(w/duration);
-                    ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),window.innerHeight/80);
-                }
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, h/2);
-                ctx.strokeStyle = `rgb(0, 0, 0)`;
-                ctx.lineWidth = 1;
-                for (i = 0; i < duration*samplefreq; i++) {
-                    ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
-                }
-                ctx.stroke();
-                var t = Math.floor(theta/samplefreq);
-                var hour = Math.floor(t/3600);
-                if(hour<10) hour = "0" + hour;
-                var min = Math.floor((t - hour*3600)/60);
-                if(min<10) min = "0" + min;
-                var sec = t - hour*3600 - min*60;
-                if(sec<10) sec = "0" + sec;
-                document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
-            }
-        }
-        else{ final(); }
-    }
-
-    function previousWave() {
-        if(theta-samplefreq*duration>=0){
-            theta-=samplefreq*duration;
-            for(var j=0;j<ECGClass.length;j++){
-                ctx = document.getElementById(ECGClass[j]).getContext("2d");
-                ctx_x = document.getElementById(ECGClass[j]+'_X').getContext("2d");
-                data = ECGData_splite[j];
-                ctx.setTransform(1,0,0,-1,0,h);
-                ctx.clearRect(0, 0, w, h);
-                ctx.strokeStyle = 'red';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                for (var y = h/20; y <= h; y += h/20) {
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(w, y);
-                }
-                ctx.stroke();
-                ctx_x.clearRect( 0, 0, xw, xh);
-                ctx.beginPath();
-                ctx_x.beginPath();
-                for (var x = theta%samplefreq; x < w+(samplefreq*duration); x += w/duration) {
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x, h);
-                    var a = x/(w/duration);
-                    ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),window.innerHeight/80);
-                }
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, h/2);
-                ctx.strokeStyle = `rgb(0, 0, 0)`;
-                ctx.lineWidth = 1;
-                for (i = 0; i < duration*samplefreq; i++) {
-                    ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
-                }
-                ctx.stroke();
-                var t = Math.floor(theta*(1/samplefreq));
-                var hour = Math.floor(t/3600);
-                if(hour<10) hour = "0" + hour;
-                var min = Math.floor((t - hour*3600)/60);
-                if(min<10) min = "0" + min;
-                var sec = t - hour*3600 - min*60;
-                if(sec<10) sec = "0" + sec;
-                document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
-            }
-        }
-        else{ init(); }
-    }
-
-    function moveTo() {
-        var point = document.getElementById("GoToInput").value.split(":");
-        var time = parseFloat(point[0])*3600 + parseFloat(point[1])*60 + parseFloat(point[2]);
-        theta = time*samplefreq;
-        for(var j=0;j<ECGClass.length;j++){
-            ctx = document.getElementById(ECGClass[j]).getContext("2d");
-            ctx_x = document.getElementById(ECGClass[j]+'_X').getContext("2d");
-            data = ECGData_splite[j];
+            ctx = document.getElementById(ECGClass).getContext("2d");
+            ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
+            ctx_x.font = "12px Arial";
+            data = ECGData_splite;
             ctx.setTransform(1,0,0,-1,0,h);
             ctx.clearRect(0, 0, w, h);
             ctx.strokeStyle = 'red';
@@ -508,7 +467,7 @@
             ctx_x.clearRect( 0, 0, xw, xh);
             ctx.beginPath();
             ctx_x.beginPath();
-            for (var x = theta%(samplefreq*duration/duration); x < w+(samplefreq*duration); x += w/duration) {
+            for (var x = theta%samplefreq; x < w+(samplefreq*duration); x += w/duration) {
                 ctx.moveTo(x, 0);
                 ctx.lineTo(x, h);
                 var a = x/(w/duration);
@@ -523,7 +482,102 @@
                 ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
             }
             ctx.stroke();
+            var t = Math.floor(theta/samplefreq);
+            var hour = Math.floor(t/3600);
+            if(hour<10) hour = "0" + hour;
+            var min = Math.floor((t - hour*3600)/60);
+            if(min<10) min = "0" + min;
+            var sec = t - hour*3600 - min*60;
+            if(sec<10) sec = "0" + sec;
+            document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
+            document.getElementById("audio_player").currentTime = t;
         }
+        else{ final(); }
+    }
+
+    function previousWave() {
+        if(theta-samplefreq*duration>=0){
+            theta-=samplefreq*duration;
+            ctx = document.getElementById(ECGClass).getContext("2d");
+            ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
+            data = ECGData_splite;
+            ctx.setTransform(1,0,0,-1,0,h);
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (var y = h/20; y <= h; y += h/20) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+            }
+            ctx.stroke();
+            ctx_x.clearRect( 0, 0, xw, xh);
+            ctx.beginPath();
+            ctx_x.beginPath();
+            for (var x = theta%samplefreq; x < w+(samplefreq*duration); x += w/duration) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                var a = x/(w/duration);
+                ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),window.innerHeight/80);
+            }
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.strokeStyle = `rgb(0, 0, 0)`;
+            ctx.lineWidth = 1;
+            for (i = 0; i < duration*samplefreq; i++) {
+                ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
+            }
+            ctx.stroke();
+            var t = Math.floor(theta*(1/samplefreq));
+            var hour = Math.floor(t/3600);
+            if(hour<10) hour = "0" + hour;
+            var min = Math.floor((t - hour*3600)/60);
+            if(min<10) min = "0" + min;
+            var sec = t - hour*3600 - min*60;
+            if(sec<10) sec = "0" + sec;
+            document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
+            document.getElementById("audio_player").currentTime = t;
+        }
+        else{ init(); }
+    }
+
+    function moveTo() {
+        var point = document.getElementById("GoToInput").value.split(":");
+        var time = parseFloat(point[0])*3600 + parseFloat(point[1])*60 + parseFloat(point[2]);
+        document.getElementById("audio_player").currentTime = time;
+        theta = time*samplefreq;
+        ctx = document.getElementById(ECGClass).getContext("2d");
+        ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
+        data = ECGData_splite;
+        ctx.setTransform(1,0,0,-1,0,h);
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var y = h/20; y <= h; y += h/20) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+        ctx_x.clearRect( 0, 0, xw, xh);
+        ctx.beginPath();
+        ctx_x.beginPath();
+        for (var x = theta%(samplefreq*duration/duration); x < w+(samplefreq*duration); x += w/duration) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            var a = x/(w/duration);
+            ctx_x.fillText(a.toFixed(2),x-(w/(samplefreq*duration)*theta),window.innerHeight/80);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, h/2);
+        ctx.strokeStyle = `rgb(0, 0, 0)`;
+        ctx.lineWidth = 1;
+        for (i = 0; i < duration*samplefreq; i++) {
+            ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
+        }
+        ctx.stroke();
     }
 
     function addAnnotationButton(){
@@ -601,64 +655,62 @@
     }
 
     function redraw() {
-        for(var j=0;j<ECGClass.length;j++){
-            ctx = document.getElementById(ECGClass[j]).getContext("2d");
-            ctx_x = document.getElementById(ECGClass[j]+'_X').getContext("2d");
-            data = ECGData_splite[j];
-            ctx.setTransform(1,0,0,-1,0,h);
-            ctx.clearRect(0, 0, w, h);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            for (var y = h/20; y <= h; y += h/20) {
-                ctx.moveTo(0, y);
-                ctx.lineTo(w, y);
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            for (var x = theta%samplefreq; x < theta%samplefreq+samplefreq*duration; x += w/duration) {
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, h);
-            }
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, h/2);
-            ctx.strokeStyle = `rgb(0, 0, 0)`;
-            ctx.lineWidth = 1;
-            for (i = 0; i < duration*samplefreq; i++) {
-                ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
-            }
-            ctx.stroke();
-
-            ctx.beginPath();
-            if(p1) {
-                ctx.moveTo(p1.pageX-CanvusLeft[0], 0);
-                ctx.lineTo(p1.pageX-CanvusLeft[0], h);
-            }
-            if(p2) {
-                ctx.moveTo(p2.pageX-CanvusLeft[0], 0);
-                ctx.lineTo(p2.pageX-CanvusLeft[0], h);
-            }
-            if(p3) {
-                ctx.moveTo(p3.pageX-CanvusLeft[0], 0);
-                ctx.lineTo(p3.pageX-CanvusLeft[0], h);
-            }
-            if(p4) {
-                ctx.moveTo(p4.pageX-CanvusLeft[0], 0);
-                ctx.lineTo(p4.pageX-CanvusLeft[0], h);
-            }
-            if(p5) {
-                ctx.moveTo(p5.pageX-CanvusLeft[0], 0);
-                ctx.lineTo(p5.pageX-CanvusLeft[0], h);
-            }
-            if(p6) {
-                ctx.moveTo(p6.pageX-CanvusLeft[0], 0);
-                ctx.lineTo(p6.pageX-CanvusLeft[0], h);
-            }
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+        ctx = document.getElementById(ECGClass).getContext("2d");
+        ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
+        data = ECGData_splite;
+        ctx.setTransform(1,0,0,-1,0,h);
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var y = h/20; y <= h; y += h/20) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
         }
+        ctx.stroke();
+        ctx.beginPath();
+        for (var x = theta%samplefreq; x < theta%samplefreq+samplefreq*duration; x += w/duration) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, h/2);
+        ctx.strokeStyle = `rgb(0, 0, 0)`;
+        ctx.lineWidth = 1;
+        for (i = 0; i < duration*samplefreq; i++) {
+            ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
+        }
+        ctx.stroke();
+
+        ctx.beginPath();
+        if(p1) {
+            ctx.moveTo(p1.pageX-CanvusLeft, 0);
+            ctx.lineTo(p1.pageX-CanvusLeft, h);
+        }
+        if(p2) {
+            ctx.moveTo(p2.pageX-CanvusLeft, 0);
+            ctx.lineTo(p2.pageX-CanvusLeft, h);
+        }
+        if(p3) {
+            ctx.moveTo(p3.pageX-CanvusLeft, 0);
+            ctx.lineTo(p3.pageX-CanvusLeft, h);
+        }
+        if(p4) {
+            ctx.moveTo(p4.pageX-CanvusLeft, 0);
+            ctx.lineTo(p4.pageX-CanvusLeft, h);
+        }
+        if(p5) {
+            ctx.moveTo(p5.pageX-CanvusLeft, 0);
+            ctx.lineTo(p5.pageX-CanvusLeft, h);
+        }
+        if(p6) {
+            ctx.moveTo(p6.pageX-CanvusLeft, 0);
+            ctx.lineTo(p6.pageX-CanvusLeft, h);
+        }
+        ctx.strokeStyle = 'blue';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
     }
 
     function SwallowTable(){
@@ -771,172 +823,142 @@
         if(swallowFlag == 1) {
             // 網頁紀錄使用者點選的位置
             p1 = e;
-            var i=CanvusTop.length-1;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p1.pageX>=CanvusLeft[i] && p1.pageX<=CanvusLeft[i]+w && p1.pageY>=CanvusTop[i] && p1.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p1=null;
-                        return;
-                    }
-                    i--;
-                }
+            if(p1.pageX>=CanvusLeft && p1.pageX<=CanvusLeft+w && p1.pageY>=CanvusTop && p1.pageY<=CanvusTop+h){ 
+                // 網頁於畫布標出點的位置
+                ctx.beginPath();
+                ctx.moveTo(p1.pageX-CanvusLeft, 0);
+                ctx.lineTo(p1.pageX-CanvusLeft, h);
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                p1t = (p1.pageX-CanvusLeft)/(w/(duration*1000));
             }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p1.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p1.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            p1t = (p1.pageX-CanvusLeft[i])/(w/(duration*1000));
+            else {
+                document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
+                p1=null;
+                return;
+            }
         }
         else if(swallowFlag == 2) {
             p2 = e;
-            var i=CanvusTop.length-1;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p2.pageX>=CanvusLeft[i] && p2.pageX<=CanvusLeft[i]+w && p2.pageY>=CanvusTop[i] && p2.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p2=null;
-                        return;
-                    }
-                    i--;
+            if(p2.pageX>=CanvusLeft && p2.pageX<=CanvusLeft+w && p2.pageY>=CanvusTop && p2.pageY<=CanvusTop+h){ 
+                p2t = (p2.pageX-CanvusLeft)/(w/(duration*1000));
+                if(p2t<p1t){
+                    document.getElementById("SwallowIntervalSpan").innerHTML="第二點必須在第一點後";
+                    p2=null;
+                    return;
                 }
+                // 網頁於畫布標出點的位置
+                ctx.beginPath();
+                ctx.moveTo(p2.pageX-CanvusLeft, 0);
+                ctx.lineTo(p2.pageX-CanvusLeft, h);
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
             }
-            p2t = (p2.pageX-CanvusLeft[i])/(w/(duration*1000));
-            if(p2t<p1t){
-                document.getElementById("SwallowIntervalSpan").innerHTML="第二點必須在第一點後";
+            else {
+                document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
                 p2=null;
                 return;
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p2.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p2.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            }            
         }
         else if(swallowFlag == 3) {
             p3 = e;
-            var i=CanvusTop.length-1;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p3.pageX>=CanvusLeft[i] && p3.pageX<=CanvusLeft[i]+w && p3.pageY>=CanvusTop[i] && p3.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p3=null;
-                        return;
-                    }
-                    i--;
+            if(p3.pageX>=CanvusLeft && p3.pageX<=CanvusLeft+w && p3.pageY>=CanvusTop && p3.pageY<=CanvusTop+h){ 
+                p3t = (p3.pageX-CanvusLeft)/(w/(duration*1000));
+                if(p3t<p2t){
+                    document.getElementById("SwallowIntervalSpan").innerHTML="第三點必須在第二點後";
+                    p3=null;
+                    return;
                 }
+                // 網頁於畫布標出點的位置
+                ctx.beginPath();
+                ctx.moveTo(p3.pageX-CanvusLeft, 0);
+                ctx.lineTo(p3.pageX-CanvusLeft, h);
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
             }
-            p3t = (p3.pageX-CanvusLeft[i])/(w/(duration*1000));
-            if(p3t<p2t){
-                document.getElementById("SwallowIntervalSpan").innerHTML="第三點必須在第二點後";
+            else {
+                document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
                 p3=null;
                 return;
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p3.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p3.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            }            
         }
         else if(swallowFlag == 4) {
             p4 = e;
-            var i=CanvusTop.length-1;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p4.pageX>=CanvusLeft[i] && p4.pageX<=CanvusLeft[i]+w && p4.pageY>=CanvusTop[i] && p4.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p4=null;
-                        return;
-                    }
-                    i--;
+            if(p4.pageX>=CanvusLeft && p4.pageX<=CanvusLeft+w && p4.pageY>=CanvusTop && p4.pageY<=CanvusTop+h){ 
+                    p4t = (p4.pageX-CanvusLeft)/(w/(duration*1000));
+                if(p4t<p3t){
+                    document.getElementById("SwallowIntervalSpan").innerHTML="第四點必須在第三點後";
+                    p4=null;
+                    return;
                 }
+                // 網頁於畫布標出點的位置
+                ctx.beginPath();
+                ctx.moveTo(p4.pageX-CanvusLeft, 0);
+                ctx.lineTo(p4.pageX-CanvusLeft, h);
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
             }
-            p4t = (p4.pageX-CanvusLeft[i])/(w/(duration*1000));
-            if(p4t<p3t){
-                document.getElementById("SwallowIntervalSpan").innerHTML="第四點必須在第三點後";
+            else {
+                document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
                 p4=null;
                 return;
-            }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p4.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p4.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
+            }            
         }
         else if(swallowFlag == 5) {
             p5 = e;
-            var i=CanvusTop.length-1;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p5.pageX>=CanvusLeft[i] && p5.pageX<=CanvusLeft[i]+w && p5.pageY>=CanvusTop[i] && p5.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p5=null;
-                        return;
-                    }
-                    i--;
+            if(p5.pageX>=CanvusLeft && p5.pageX<=CanvusLeft+w && p5.pageY>=CanvusTop && p5.pageY<=CanvusTop+h){ 
+                p5t = (p5.pageX-CanvusLeft)/(w/(duration*1000));
+                if(p5t<p4t){
+                    document.getElementById("SwallowIntervalSpan").innerHTML="第五點必須在第四點後";
+                    p4=null;
+                    return;
                 }
-            }
-            p5t = (p5.pageX-CanvusLeft[i])/(w/(duration*1000));
-            if(p5t<p4t){
-                document.getElementById("SwallowIntervalSpan").innerHTML="第五點必須在第四點後";
-                p4=null;
+                // 網頁於畫布標出點的位置
+                ctx.beginPath();
+                ctx.moveTo(p5.pageX-CanvusLeft, 0);
+                ctx.lineTo(p5.pageX-CanvusLeft, h);
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                }
+            else {
+                document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
+                p5=null;
                 return;
             }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p5.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p5.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
         }
         else if(swallowFlag == 6) {
             p6 = e;
-            var i=CanvusTop.length-1;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            while(i>=0){
-                if(p6.pageX>=CanvusLeft[i] && p6.pageX<=CanvusLeft[i]+w && p6.pageY>=CanvusTop[i] && p6.pageY<=CanvusTop[i]+h){ break; }
-                else {
-                    if(i==0){
-                        document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
-                        p6=null;
-                        return;
-                    }
-                    i--;
+            if(p6.pageX>=CanvusLeft && p6.pageX<=CanvusLeft+w && p6.pageY>=CanvusTop && p6.pageY<=CanvusTop+h){ 
+                p6t = (p6.pageX-CanvusLeft)/(w/(duration*1000));
+                if(p6t<p5t){
+                    document.getElementById("SwallowIntervalSpan").innerHTML="第六點必須在第五點後";
+                    p4=null;
+                    return;
                 }
+                // 網頁於畫布標出點的位置
+                ctx.beginPath();
+                ctx.moveTo(p6.pageX-CanvusLeft, 0);
+                ctx.lineTo(p6.pageX-CanvusLeft, h);
+                ctx.strokeStyle = 'blue';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
             }
-            p6t = (p6.pageX-CanvusLeft[i])/(w/(duration*1000));
-            if(p6t<p5t){
-                document.getElementById("SwallowIntervalSpan").innerHTML="第六點必須在第五點後";
-                p4=null;
+            else {
+                document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
+                p6=null;
                 return;
             }
-            // 網頁於畫布標出點的位置
-            ctx.beginPath();
-            ctx.moveTo(p6.pageX-CanvusLeft[i], 0);
-            ctx.lineTo(p6.pageX-CanvusLeft[i], h);
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
         }
         document.removeEventListener("mousedown",swallowdisten,false);
         SwallowRecord();
