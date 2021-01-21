@@ -38,11 +38,11 @@
     var samplefreq;
     var allSwallow= "";
     var yw = window.innerWidth/53.333;
-    var yh = window.innerHeight/2.37;
+    var yh = window.innerHeight/2.87;
     var xw = window.innerWidth/1.081;
     var xh = window.innerHeight/75.7;
     var w = window.innerWidth/1.103;
-    var h = window.innerHeight/2.49;
+    var h = window.innerHeight/2.99;
     var audioContext = new AudioContext();
     var spectro;
     var media = {
@@ -392,7 +392,7 @@
                     var SpectrogramsY = document.createElement('canvas');
                     SpectrogramsY.id = codeDisplay+'_SpectrogramsY';
                     SpectrogramsY.width = yw;
-                    SpectrogramsY.height = window.innerHeight/5;
+                    SpectrogramsY.height = yh;
                     document.getElementById(codeDisplay+'_SpectrogramsTdY').appendChild(SpectrogramsY);
                 var SpectrogramsTd = document.createElement('td');
                 SpectrogramsTd.id = codeDisplay+"_SpectrogramsTd";
@@ -401,7 +401,7 @@
                     var Spectrograms = document.createElement('canvas');
                     Spectrograms.id = codeDisplay+"_Spectrograms";
                     Spectrograms.width = w;
-                    Spectrograms.height = window.innerHeight/5;
+                    Spectrograms.height = h;
                     Spectrograms.style.backgroundColor = "white";
                     Spectrograms.style.border = "1px solid black";
                     document.getElementById(codeDisplay+'_SpectrogramsTd').appendChild(Spectrograms);
@@ -671,7 +671,7 @@
         AnnotationTable.id = 'AnnotationTable';
         AnnotationTable.style.position = "absolute";
         AnnotationTable.style.left = "5%";
-        AnnotationTable.style.top = window.innerHeight/1.25+"px";
+        AnnotationTable.style.top = window.innerHeight/1.18+"px";
         AnnotationTable.style.marginLeft = "auto";
         AnnotationTable.style.marginRight = "auto";
         AnnotationTable.style.fontSize = window.innerHeight/63.1+"px";
@@ -700,7 +700,7 @@
         RecordTable.id = "RecordTable";
         RecordTable.style.position = "absolute";
         RecordTable.style.left = "35%";
-        RecordTable.style.top = window.innerHeight/1.25+"px";
+        RecordTable.style.top = window.innerHeight/1.18+"px";
         RecordTable.style.marginLeft = "auto";
         RecordTable.style.marginRight = "auto";
         RecordTable.style.fontSize=window.innerHeight/63.1+"px";
@@ -710,7 +710,7 @@
         SaveTable.id = 'SaveTable';
         SaveTable.style.position = "absolute";
         SaveTable.style.left = "5%";
-        SaveTable.style.top = window.innerHeight/1.18+"px";
+        SaveTable.style.top = window.innerHeight/1.11+"px";
         SaveTable.style.marginLeft = "auto";
         SaveTable.style.marginRight = "auto";
         document.body.appendChild(SaveTable);

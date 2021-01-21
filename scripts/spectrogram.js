@@ -33,10 +33,10 @@
         for (var i = 0; i < array.length; i++) {
           if(array[i]!=0){
             canvasContext.fillStyle = this._getColor(array[i]);
-            canvasContext.fillRect(width, canvas.height-i*1.5, canvas.width/(48000*(media.slice.end-media.slice.start)/1000/2048), 1.5);
+            canvasContext.fillRect(width, canvas.height-i*2, canvas.width/(46750*(media.slice.end-media.slice.start)/1000/256), 2);
           }
         }
-        width+=canvas.width/(48000*(media.slice.end-media.slice.start)/1000/2048)/times;
+        width+=canvas.width/(46750*(media.slice.end-media.slice.start)/1000/256)/times;
       }
 
   };
@@ -60,7 +60,7 @@
     };
     this._sources.audioBufferStream = source;
     var source_ = this._sources.audioBufferStream;
-    source_.scriptNode = source_.audioContext.createScriptProcessor(2048, 1, 1);
+    source_.scriptNode = source_.audioContext.createScriptProcessor(256, 1, 1);
     source_.scriptNode.connect(source_.audioContext.destination);
     source_.scriptNode.onaudioprocess = function(event) {
       var array = new Uint8Array(source_.analyser.frequencyBinCount);
