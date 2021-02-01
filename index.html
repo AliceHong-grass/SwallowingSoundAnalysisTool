@@ -180,7 +180,7 @@
 		request.onload = function() {
           audioContext = new AudioContext();
           audioContext.resume();
-		  audioContext.decodeAudioData(request.response, function(buffer) { callback(buf); });
+		  audioContext.decodeAudioData(request.response, function(buffer) { callback(buffer); });
 		};
 		request.send();
 	}
