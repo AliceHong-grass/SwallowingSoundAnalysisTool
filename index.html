@@ -8,30 +8,37 @@
       <!--網頁顯示選擇檔案的按鍵-->
       <table align="center" style="width:95%;">
         <tr>
-            <td style="text-align: center; font-size: 75%;">
-                請選擇要添增資料的 Swallow.csv (非必填)：<input type="file" id="original2" accept=".csv" style='border:1px solid #BBB;'>
+            <td colspan="2" style="text-align: center; font-size: 75%; width:45%;">
+                請選擇要添增資料的 Swallow.csv (非必填)：<input type="file" id="original2" accept=".csv" style='border:1px solid #BBB; width:40%;'>
             </td>
-            <td style="text-align: center; font-size: 75%;">
-                請選擇要標記的 wav 檔：<input type="file" id="files" accept=".wav" style='border:1px solid #BBB;'><!--只讓使用者選擇一個 .wav 檔-->
+            <td colspan="2" style="text-align: center; font-size: 75%; width:40%;">
+                請選擇要標記的 wav 檔：<input type="file" id="files" accept=".wav" style='border:1px solid #BBB; width:50%;'><!--只讓使用者選擇一個 .wav 檔-->
             </td>
-            <td style="text-align: right;">
-                &nbsp;&nbsp;&nbsp;<input id="restart" type="button" value="Restart" disabled style="font-size: 75%;" onclick="resetTimeLine();"></input>
+            <td style="text-align: right; width:5%;">
+                <input id="restart" type="button" value="Restart" disabled style="font-size: 75%;" onclick="resetTimeLine();"></input>
             </td>
-            <td style="text-align: left;">
+            <td style="text-align: left; width:10%;">
                 <audio controls id="audio_player" style='width: 250px; height: 25px;'></audio>
             </td>
-
+        </tr>
+        <tr>
+            <td id="control_1" style="text-align: right; font-size: 75%;"></td>
+            <td id="control_2" style="text-align: right; font-size: 75%;"></td>
+            <td id="control_3" style="text-align: right; font-size: 75%;"></td>
+            <td id="control_4" style="text-align: left; font-size: 75%;"></td>
+            <td id="control_5" style="text-align: right; font-size: 75%;"></td>
+            <td id="control_6" style="text-align: left; font-size: 75%;"></td>
         </tr>
       </table>
-	  <script src="scripts/audiobuffer-slice.js"></script>
-	  <script src="scripts/vendor/chroma.js"></script>
-	  <script src="scripts/spectrogram.js"></script>
+      <script src="scripts/spectrogram.js"></script>
+      <script src="scripts/FFT.js"></script>
   </body>
   <script>
     document.getElementById("original2").style.fontSize = window.innerHeight/63.1+"px";
     document.getElementById("files").style.fontSize = window.innerHeight/63.1+"px";
-    var ECGData_splite;
-    var ECGClass;
+    var ctx_y, ctx, ctx_x, ctx_s;
+    var data;
+    var Class;
     var maxV;
     var maxT;
     var duration;
@@ -49,6 +56,8 @@
       file: '',
       slice: {start: 0, end: 340000}
     };
+
+    var fft;
 
     document.getElementById("original2").onchange = function() {
         // 建立 FileReader 物件
@@ -84,15 +93,15 @@
 	var file;
     // 網頁讀取使用者選擇的 .wav 檔
     document.getElementById("files").onchange = function() {
-        if(document.getElementById(ECGClass+'_CanvusTable')) document.getElementById(ECGClass+'_CanvusTable').remove();
-        ECGData_splite = "";
-        ECGClass = "";
+        if(document.getElementById(Class+'_CanvusTable')) document.getElementById(Class+'_CanvusTable').remove();
+        data = "";
+        Class = "";
         var files = this.files;
         file = URL.createObjectURL(files[0]);
         audio_player.src = file;
         document.getElementById("audio_player").onplaying = drawTimeLine;
         document.getElementById("audio_player").onpause = stopTimeLine;
-		    media.file = file;
+		media.file = file;
         // 建立 FileReader 物件
         let fileReader = new FileReader();
         // 載入檔案
@@ -136,14 +145,15 @@
             for(let i=0; i<value.length; i+=wav.NUM_CHANNELS){
                 for(let j=0; j<wav.NUM_CHANNELS; j++){ channels[j].push(value[i+j]); }
             }
-            ECGData_splite=channels[0];
-            ECGClass = document.getElementById("files").files[0].name;
+            data=channels[0];
+            Class = document.getElementById("files").files[0].name;
             // 網頁計算出總時間長
             maxT = (value.length / wav.NUM_CHANNELS) /samplefreq;
             duration = maxT;
-			      media.slice.end = maxT*1000;
+			media.slice.end = maxT*1000;
             // 網頁紀錄 ADC 解析度
             maxV = Math.pow(2,(wav.BITS_PER_SAMPLE));
+            fft = new FFT(1024, samplefreq);
             if(document.getElementById('AnnotationTable')) document.getElementById('AnnotationTable').innerHTML="";
             if(document.getElementById("ContralCanvusP")) document.getElementById("ContralCanvusP").innerHTML="";
             if(document.getElementById("RecordTable")) document.getElementById("RecordTable").innerHTML="";
@@ -151,9 +161,10 @@
             // 網頁顯示調整畫布的按鍵
             addContralCanvusButton();
             // 網頁添增畫布繪製波形
-            addCanvus(ECGClass);
+            addCanvus(Class);
             // 網頁繪製波形
             init();
+            playSong();
             // 網頁添增標記的按鍵（時間標記、振幅標記與吞嚥標記）
             // 網頁添增每個按鍵的文字框
             // 網頁添增紀錄的按鍵，並暫時隱藏
@@ -166,16 +177,15 @@
 		request.open('GET', selectedMedia.file, true);
 		request.responseType = 'arraybuffer';
 		request.onload = function() {
-		  audioContext.decodeAudioData(request.response, function(buffer) {
-            var slice = selectedMedia.slice;
-            AudioBufferSlice(buffer, slice.start, slice.end, function(error, buf) { callback(buf); });
-		  });
+		  audioContext.decodeAudioData(request.response, function(buffer) { callback(buffer); });
 		};
 		request.send();
 	}
 
+    var dataslice;
 	function playSong() {
 		loadMedia(media, function(songBuffer) {
+          dataslice = data.slice(media.slice.start/1000*samplefreq,media.slice.end/1000*samplefreq);
 		  spectro.connectSource(songBuffer, audioContext);
 		  spectro.start();
 		});
@@ -184,19 +194,9 @@
     var go;
     function drawTimeLine(){
         document.getElementById("restart").disabled=false;
-        if(document.getElementById(ECGClass+"_Spectrograms").style.backgroundColor=="white") playSong();
-        else if(document.getElementById("audio_player").currentTime == Math.abs(theta*(1/samplefreq))){
-          spectro.clear();
-          document.getElementById(ECGClass+"_Spectrograms").style.backgroundColor="white";
-          playSong();
-        }
-        else spectro.resume();
-        // if(duration/maxT<0.15) document.getElementById("audio_player").playbackRate = 0.15;
-        // else document.getElementById("audio_player").playbackRate = duration/maxT;
         go = setInterval(function(){
             var g = document.getElementById("audio_player").currentTime*samplefreq-theta;
             redraw();
-            var ctx = document.getElementById(ECGClass).getContext("2d");
             ctx.strokeStyle = 'gray';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
@@ -205,8 +205,7 @@
             ctx.stroke();
             if(g>=samplefreq*duration) {
               document.getElementById("restart").disabled=true;
-              clearInterval(go);
-              document.getElementById("audio_player").pause();
+              stopTimeLine();
               document.getElementById("audio_player").currentTime = Math.floor(theta*(1/samplefreq));
               spectro.pause();
               redraw();
@@ -217,7 +216,6 @@
     function stopTimeLine(){
         clearInterval(go);
         document.getElementById("audio_player").pause();
-        spectro.pause();
     }
 
     function resetTimeLine(){
@@ -226,105 +224,115 @@
         document.getElementById("audio_player").pause();
         document.getElementById("audio_player").currentTime = Math.floor(theta*(1/samplefreq));
         spectro.clear();
-        document.getElementById(ECGClass+"_Spectrograms").style.backgroundColor="white";
         redraw();
     }
 
     function addContralCanvusButton(){
-        var ContralCanvusP = document.createElement('p');
-        ContralCanvusP.id = 'ContralCanvusP';
-        ContralCanvusP.style.position = "absolute";
-        ContralCanvusP.style.top = "5%";
-        ContralCanvusP.style.left = "32%";
-        ContralCanvusP.style.fontSize = window.innerHeight/63.1+"px";
-        document.body.appendChild(ContralCanvusP);
-
-        document.getElementById("ContralCanvusP").innerHTML+="Go to：";
-
+        document.getElementById("control_1").innerHTML+="Go to：";
         var GoToInput = document.createElement('input');
         GoToInput.id = 'GoToInput';
         GoToInput.type = "text";
         GoToInput.placeholder = "HH:MM:SS";
         GoToInput.size = window.innerWidth/160;
         GoToInput.style.fontSize = window.innerHeight/63.1+"px";
-        document.getElementById("ContralCanvusP").appendChild(GoToInput);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;";
-
+        document.getElementById("control_1").appendChild(GoToInput);
+        document.getElementById("control_1").innerHTML+="&nbsp;&nbsp;";
         var GoToButton = document.createElement('input');
         GoToButton.id = 'GoToButton';
         GoToButton.type = "button";
         GoToButton.value = "\u21B4";
         GoToButton.style.fontSize = window.innerHeight/63.1+"px";
-        document.getElementById("ContralCanvusP").appendChild(GoToButton);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-
+        document.getElementById("control_1").appendChild(GoToButton);
+        
         var StartOfRecordButton = document.createElement('input');
         StartOfRecordButton.id = 'StartOfRecordButton';
         StartOfRecordButton.type = "button";
         StartOfRecordButton.value = "|\u25C1";
         StartOfRecordButton.style.fontSize = window.innerHeight/63.1+"px";
-        document.getElementById("ContralCanvusP").appendChild(StartOfRecordButton);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;";
-
+        document.getElementById("control_2").appendChild(StartOfRecordButton);
+        document.getElementById("control_2").innerHTML+="&nbsp;&nbsp;";
         var PreviousWindowButton = document.createElement('input');
         PreviousWindowButton.id = 'PreviousWindowButton';
         PreviousWindowButton.type = "button";
         PreviousWindowButton.value = "\u25C1";
         PreviousWindowButton.style.fontSize = window.innerHeight/63.1+"px";
-        document.getElementById("ContralCanvusP").appendChild(PreviousWindowButton);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;";
-
+        document.getElementById("control_2").appendChild(PreviousWindowButton);
+        document.getElementById("control_2").innerHTML+="&nbsp;&nbsp;";
         var NextWindowButton = document.createElement('input');
         NextWindowButton.id = 'NextWindowButton';
         NextWindowButton.type = "button";
         NextWindowButton.value = "\u25B7";
         NextWindowButton.style.fontSize = window.innerHeight/63.1+"px";
-        document.getElementById("ContralCanvusP").appendChild(NextWindowButton);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;";
-
+        document.getElementById("control_2").appendChild(NextWindowButton);
+        document.getElementById("control_2").innerHTML+="&nbsp;&nbsp;";
         var EndOfRecordButton = document.createElement('input');
         EndOfRecordButton.id = 'EndOfRecordButton';
         EndOfRecordButton.type = "button";
         EndOfRecordButton.value = "\u25B7|";
         EndOfRecordButton.style.fontSize = window.innerHeight/63.1+"px";
-        document.getElementById("ContralCanvusP").appendChild(EndOfRecordButton);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+        document.getElementById("control_2").appendChild(EndOfRecordButton);
 
         var DurationRange = document.createElement('input');
         DurationRange.id = 'DurationRange';
         DurationRange.type = "range";
         DurationRange.min = "1";
         DurationRange.max = maxT;
-        DurationRange.style.width = "20%";
         DurationRange.setAttribute("value", maxT);
         DurationRange.class = "slider";
-        document.getElementById("ContralCanvusP").appendChild(DurationRange);
-
-        document.getElementById("ContralCanvusP").innerHTML+="&nbsp;&nbsp;&nbsp;&nbsp;Duration: ";
+        document.getElementById("control_3").appendChild(DurationRange);
 
         var DurationSpan = document.createElement('span');
         DurationSpan.id = 'DurationSpan';
-        DurationSpan.innerHTML = maxT;
-        document.getElementById("ContralCanvusP").appendChild(DurationSpan);
-
+        DurationSpan.innerHTML = "Duration: "+ maxT;
+        document.getElementById("control_4").appendChild(DurationSpan);
         document.getElementById("DurationRange").onchange = function() {
-            document.getElementById("DurationSpan").innerHTML = this.value;
+            document.getElementById("DurationSpan").innerHTML = "Duration: "+ this.value;
             duration = this.value;
             init();
             media.slice.end = media.slice.start + duration*1000;
             spectro.clear();
-            document.getElementById(ECGClass+"_Spectrograms").style.backgroundColor="white";
+            playSong();
+            document.removeEventListener("mousedown",swallowdisten,false);
+            if(p6==null){
+                p1=null;
+                p2=null;
+                p3=null;
+                p4=null;
+                p5=null;
+                p6=null;
+                swallowFlag = 1;
+                if(document.getElementById("SwallowTr" + SwallowTableColumn)){
+                    document.getElementById('RecordTable').removeChild(document.getElementById("SwallowTr" + SwallowTableColumn));
+                }
+            }
+            redraw();
+            redraw_s();
+            // 網頁可用標記按鍵
+            document.getElementById("SwallowIntervalButton").disabled=false;
+            // 網頁將其他按鍵的文字框清空
+            document.getElementById("SwallowIntervalSpan").innerHTML="";
+        }
+
+        var AudioPlayRate = document.createElement('input');
+        AudioPlayRate.id = 'AudioPlayRate';
+        AudioPlayRate.type = "range";
+        AudioPlayRate.min = "4";
+        AudioPlayRate.max = "20";
+        AudioPlayRate.setAttribute("value", "20");
+        AudioPlayRate.class = "slider";
+        document.getElementById("control_5").appendChild(AudioPlayRate);
+        
+        var AudioPlayRateSpan = document.createElement('span');
+        AudioPlayRateSpan.id = 'AudioPlayRateSpan';
+        AudioPlayRateSpan.innerHTML = "Audio Play Rate: "+"1";
+        document.getElementById("control_6").appendChild(AudioPlayRateSpan);
+        document.getElementById("AudioPlayRate").onchange = function() {
+            document.getElementById("AudioPlayRateSpan").innerHTML = "Audio Play Rate: "+(this.value*0.05).toFixed(2);
+            document.getElementById("audio_player").playbackRate = (this.value*0.05).toFixed(2);
         }
     }
 
-    var CanvusLeft;
-    var CanvusTop;
+    var CanvusLeft, CanvusTop, CanvusLeft_s, CanvusTop_s;
     function addCanvus(codeDisplay){
         CanvusTop = "";
         CanvusLeft = "";
@@ -356,7 +364,6 @@
                     Canvus.id = codeDisplay;
                     Canvus.width = w;
                     Canvus.height = h;
-                    Canvus.style.backgroundColor = "white";
                     Canvus.style.border = "1px solid black";
                     document.getElementById(codeDisplay+'_CanvusTd').appendChild(Canvus);
                 var CanvusTdNone1 = document.createElement('td');
@@ -402,30 +409,26 @@
                     Spectrograms.id = codeDisplay+"_Spectrograms";
                     Spectrograms.width = w;
                     Spectrograms.height = h;
-                    Spectrograms.style.backgroundColor = "white";
                     Spectrograms.style.border = "1px solid black";
                     document.getElementById(codeDisplay+'_SpectrogramsTd').appendChild(Spectrograms);
                 var CanvusTdNone3 = document.createElement('td');
                 CanvusTdNone3.id = codeDisplay+"_CanvusTdNone3";
                 document.getElementById(codeDisplay+'_CanvusTr3').appendChild(CanvusTdNone3);
 
-			spectro = Spectrogram(document.getElementById(codeDisplay+"_Spectrograms"), {
-				colors: function(steps) {
-				  var baseColors = [[0,0,255,1], [0,255,255,1], [0,255,0,1], [255,255,0,1], [ 255,0,0,1]];
-				  var positions = [0, 0.15, 0.30, 0.50, 0.75];
-				  var scale = new chroma.scale(baseColors, positions).domain([0, steps]);
-				  var colors = [];
-				  for (var i = 0; i < steps; ++i) {
-					var color = scale(i);
-					colors.push(color.hex());
-				  }
-				  return colors;
-				}
-			  });
+        spectro = Spectrogram(document.getElementById(codeDisplay+"_Spectrograms"));
 
         var rect = document.getElementById(codeDisplay).getBoundingClientRect();
         CanvusLeft=rect.left;
         CanvusTop=rect.top;
+
+        rect = document.getElementById(codeDisplay+"_Spectrograms").getBoundingClientRect();
+        CanvusLeft_s=rect.left;
+        CanvusTop_s=rect.top;
+
+        ctx_y = document.getElementById(Class+'_Y').getContext("2d");
+        ctx = document.getElementById(Class).getContext("2d");
+        ctx_x = document.getElementById(Class+'_X').getContext("2d");
+        ctx_s = document.getElementById(Class+'_Spectrograms').getContext("2d");
 
         document.getElementById("StartOfRecordButton").onclick = init;
         document.getElementById("EndOfRecordButton").onclick = final;
@@ -436,10 +439,6 @@
 
     var theta=0;
     function init() {
-        var ctx_y = document.getElementById(ECGClass+'_Y').getContext("2d");
-        var ctx = document.getElementById(ECGClass).getContext("2d");
-        ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
-        var data = ECGData_splite;
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
         ctx_y.clearRect(0, 0, yw, yh);
@@ -481,9 +480,6 @@
     }
 
     function final(){
-        var ctx = document.getElementById(ECGClass).getContext("2d");
-        var ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
-        data = ECGData_splite;
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
         ctx.strokeStyle = 'red';
@@ -525,15 +521,14 @@
         document.getElementById("audio_player").currentTime = maxT-duration;
         media.slice.start = (maxT-duration)*1000;
         media.slice.end = media.slice.start + duration*1000;
+
+        redraw_s();
     }
 
     function nextWave() {
         if(theta+samplefreq*duration*2<maxT*samplefreq){
             theta+=samplefreq*duration;
-            ctx = document.getElementById(ECGClass).getContext("2d");
-            ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
             ctx_x.font = "12px Arial";
-            data = ECGData_splite;
             ctx.setTransform(1,0,0,-1,0,h);
             ctx.clearRect(0, 0, w, h);
             ctx.strokeStyle = 'red';
@@ -575,14 +570,13 @@
             media.slice.end = media.slice.start + duration*1000;
         }
         else{ final(); }
+
+        redraw_s();
     }
 
     function previousWave() {
         if(theta-samplefreq*duration>=0){
             theta-=samplefreq*duration;
-            ctx = document.getElementById(ECGClass).getContext("2d");
-            ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
-            data = ECGData_splite;
             ctx.setTransform(1,0,0,-1,0,h);
             ctx.clearRect(0, 0, w, h);
             ctx.strokeStyle = 'red';
@@ -624,6 +618,8 @@
             media.slice.end = media.slice.start + duration*1000;
         }
         else{ init(); }
+
+        redraw_s();
     }
 
     function moveTo() {
@@ -633,9 +629,6 @@
         media.slice.start = time*1000;
         media.slice.end = media.slice.start + duration*1000;
         theta = time*samplefreq;
-        ctx = document.getElementById(ECGClass).getContext("2d");
-        ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
-        data = ECGData_splite;
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
         ctx.strokeStyle = 'red';
@@ -664,6 +657,8 @@
             ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
         }
         ctx.stroke();
+
+        redraw_s();
     }
 
     function addAnnotationButton(){
@@ -741,9 +736,6 @@
     }
 
     function redraw() {
-        ctx = document.getElementById(ECGClass).getContext("2d");
-        ctx_x = document.getElementById(ECGClass+'_X').getContext("2d");
-        data = ECGData_splite;
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
         ctx.strokeStyle = 'red';
@@ -797,6 +789,39 @@
         ctx.strokeStyle = 'blue';
         ctx.lineWidth = 1.5;
         ctx.stroke();
+    }
+
+    function redraw_s() {
+        spectro.clear();
+        playSong();
+        ctx_s.beginPath();
+        if(p1) {
+            ctx_s.moveTo(p1.pageX-CanvusLeft_s, 0);
+            ctx_s.lineTo(p1.pageX-CanvusLeft_s, h);
+        }
+        if(p2) {
+            ctx_s.moveTo(p2.pageX-CanvusLeft_s, 0);
+            ctx_s.lineTo(p2.pageX-CanvusLeft_s, h);
+        }
+        if(p3) {
+            ctx_s.moveTo(p3.pageX-CanvusLeft_s, 0);
+            ctx_s.lineTo(p3.pageX-CanvusLeft_s, h);
+        }
+        if(p4) {
+            ctx_s.moveTo(p4.pageX-CanvusLeft_s, 0);
+            ctx_s.lineTo(p4.pageX-CanvusLeft_s, h);
+        }
+        if(p5) {
+            ctx_s.moveTo(p5.pageX-CanvusLeft_s, 0);
+            ctx_s.lineTo(p5.pageX-CanvusLeft_s, h);
+        }
+        if(p6) {
+            ctx_s.moveTo(p6.pageX-CanvusLeft_s, 0);
+            ctx_s.lineTo(p6.pageX-CanvusLeft_s, h);
+        }
+        ctx_s.strokeStyle = 'blue';
+        ctx_s.lineWidth = 1.5;
+        ctx_s.stroke();
     }
 
     function SwallowTable(){
@@ -910,7 +935,8 @@
             // 網頁紀錄使用者點選的位置
             p1 = e;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            if(p1.pageX>=CanvusLeft && p1.pageX<=CanvusLeft+w && p1.pageY>=CanvusTop && p1.pageY<=CanvusTop+h){
+            if((p1.pageX>=CanvusLeft && p1.pageX<=CanvusLeft+w && p1.pageY>=CanvusTop && p1.pageY<=CanvusTop+h)
+            || (p1.pageX>=CanvusLeft_s && p1.pageX<=CanvusLeft_s+w && p1.pageY>=CanvusTop_s && p1.pageY<=CanvusTop_s+h)){
                 // 網頁於畫布標出點的位置
                 ctx.beginPath();
                 ctx.moveTo(p1.pageX-CanvusLeft, 0);
@@ -918,6 +944,14 @@
                 ctx.strokeStyle = 'blue';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                ctx_s.beginPath();
+                ctx_s.moveTo(p1.pageX-CanvusLeft_s, 0);
+                ctx_s.lineTo(p1.pageX-CanvusLeft_s, h);
+                ctx_s.strokeStyle = 'blue';
+                ctx_s.lineWidth = 1.5;
+                ctx_s.stroke();
+                
                 p1t = (p1.pageX-CanvusLeft)/(w/(duration*1000));
             }
             else {
@@ -929,7 +963,8 @@
         else if(swallowFlag == 2) {
             p2 = e;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            if(p2.pageX>=CanvusLeft && p2.pageX<=CanvusLeft+w && p2.pageY>=CanvusTop && p2.pageY<=CanvusTop+h){
+            if((p2.pageX>=CanvusLeft && p2.pageX<=CanvusLeft+w && p2.pageY>=CanvusTop && p2.pageY<=CanvusTop+h)
+            || (p2.pageX>=CanvusLeft_s && p2.pageX<=CanvusLeft_s+w && p2.pageY>=CanvusTop_s && p2.pageY<=CanvusTop_s+h)){
                 p2t = (p2.pageX-CanvusLeft)/(w/(duration*1000));
                 if(p2t<p1t){
                     document.getElementById("SwallowIntervalSpan").innerHTML="第二點必須在第一點後";
@@ -943,6 +978,13 @@
                 ctx.strokeStyle = 'blue';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                ctx_s.beginPath();
+                ctx_s.moveTo(p2.pageX-CanvusLeft_s, 0);
+                ctx_s.lineTo(p2.pageX-CanvusLeft_s, h);
+                ctx_s.strokeStyle = 'blue';
+                ctx_s.lineWidth = 1.5;
+                ctx_s.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -953,7 +995,8 @@
         else if(swallowFlag == 3) {
             p3 = e;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            if(p3.pageX>=CanvusLeft && p3.pageX<=CanvusLeft+w && p3.pageY>=CanvusTop && p3.pageY<=CanvusTop+h){
+            if((p3.pageX>=CanvusLeft && p3.pageX<=CanvusLeft+w && p3.pageY>=CanvusTop && p3.pageY<=CanvusTop+h)
+            || (p3.pageX>=CanvusLeft_s && p3.pageX<=CanvusLeft_s+w && p3.pageY>=CanvusTop_s && p3.pageY<=CanvusTop_s+h)){
                 p3t = (p3.pageX-CanvusLeft)/(w/(duration*1000));
                 if(p3t<p2t){
                     document.getElementById("SwallowIntervalSpan").innerHTML="第三點必須在第二點後";
@@ -967,6 +1010,13 @@
                 ctx.strokeStyle = 'blue';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                ctx_s.beginPath();
+                ctx_s.moveTo(p3.pageX-CanvusLeft_s, 0);
+                ctx_s.lineTo(p3.pageX-CanvusLeft_s, h);
+                ctx_s.strokeStyle = 'blue';
+                ctx_s.lineWidth = 1.5;
+                ctx_s.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -977,7 +1027,8 @@
         else if(swallowFlag == 4) {
             p4 = e;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            if(p4.pageX>=CanvusLeft && p4.pageX<=CanvusLeft+w && p4.pageY>=CanvusTop && p4.pageY<=CanvusTop+h){
+            if((p4.pageX>=CanvusLeft && p4.pageX<=CanvusLeft+w && p4.pageY>=CanvusTop && p4.pageY<=CanvusTop+h)
+            || (p4.pageX>=CanvusLeft_s && p4.pageX<=CanvusLeft_s+w && p4.pageY>=CanvusTop_s && p4.pageY<=CanvusTop_s+h)){
                     p4t = (p4.pageX-CanvusLeft)/(w/(duration*1000));
                 if(p4t<p3t){
                     document.getElementById("SwallowIntervalSpan").innerHTML="第四點必須在第三點後";
@@ -991,6 +1042,13 @@
                 ctx.strokeStyle = 'blue';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                ctx_s.beginPath();
+                ctx_s.moveTo(p4.pageX-CanvusLeft_s, 0);
+                ctx_s.lineTo(p4.pageX-CanvusLeft_s, h);
+                ctx_s.strokeStyle = 'blue';
+                ctx_s.lineWidth = 1.5;
+                ctx_s.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1001,7 +1059,8 @@
         else if(swallowFlag == 5) {
             p5 = e;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            if(p5.pageX>=CanvusLeft && p5.pageX<=CanvusLeft+w && p5.pageY>=CanvusTop && p5.pageY<=CanvusTop+h){
+            if((p5.pageX>=CanvusLeft && p5.pageX<=CanvusLeft+w && p5.pageY>=CanvusTop && p5.pageY<=CanvusTop+h)
+            || (p5.pageX>=CanvusLeft_s && p5.pageX<=CanvusLeft_s+w && p5.pageY>=CanvusTop_s && p5.pageY<=CanvusTop_s+h)){
                 p5t = (p5.pageX-CanvusLeft)/(w/(duration*1000));
                 if(p5t<p4t){
                     document.getElementById("SwallowIntervalSpan").innerHTML="第五點必須在第四點後";
@@ -1015,6 +1074,13 @@
                 ctx.strokeStyle = 'blue';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                ctx_s.beginPath();
+                ctx_s.moveTo(p5.pageX-CanvusLeft_s, 0);
+                ctx_s.lineTo(p5.pageX-CanvusLeft_s, h);
+                ctx_s.strokeStyle = 'blue';
+                ctx_s.lineWidth = 1.5;
+                ctx_s.stroke();
                 }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1025,7 +1091,8 @@
         else if(swallowFlag == 6) {
             p6 = e;
             // 網頁判斷位置是否超出畫布，是則於按鍵的文字框顯示警告並不紀錄該點
-            if(p6.pageX>=CanvusLeft && p6.pageX<=CanvusLeft+w && p6.pageY>=CanvusTop && p6.pageY<=CanvusTop+h){
+            if((p6.pageX>=CanvusLeft && p6.pageX<=CanvusLeft+w && p6.pageY>=CanvusTop && p6.pageY<=CanvusTop+h)
+            || (p6.pageX>=CanvusLeft_s && p6.pageX<=CanvusLeft_s+w && p6.pageY>=CanvusTop_s && p6.pageY<=CanvusTop_s+h)){
                 p6t = (p6.pageX-CanvusLeft)/(w/(duration*1000));
                 if(p6t<p5t){
                     document.getElementById("SwallowIntervalSpan").innerHTML="第六點必須在第五點後";
@@ -1039,6 +1106,13 @@
                 ctx.strokeStyle = 'blue';
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
+
+                ctx_s.beginPath();
+                ctx_s.moveTo(p6.pageX-CanvusLeft_s, 0);
+                ctx_s.lineTo(p6.pageX-CanvusLeft_s, h);
+                ctx_s.strokeStyle = 'blue';
+                ctx_s.lineWidth = 1.5;
+                ctx_s.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1052,7 +1126,7 @@
     }
 
     function Remove(){
-        if(swallowFlag == 1){
+        if(swallowFlag == 1  && document.getElementById("SwallowTd"+(SwallowTableColumn-1)+"_6").innerHTML!=""){
             p6=null;
             SwallowTableColumn--;
             document.getElementById("SwallowTd"+SwallowTableColumn+"_6").innerHTML="";
@@ -1066,128 +1140,132 @@
             document.getElementById("SwallowIntervalSpan").innerHTML= "請點選畫面上第五個要標記的點";
             swallowFlag=6;
         }
-        else if(swallowFlag == 2){
+        else if(swallowFlag == 2 && document.getElementById("SwallowTd"+SwallowTableColumn+"_1").innerHTML!=""){
             p1=null;
-            document.getElementById("SwallowTr"+SwallowTableColumn).innerHTML="";
+            document.getElementById("SwallowTd"+SwallowTableColumn+"_1").innerHTML="";
             swallowFlag--;
         }
-        else if(swallowFlag == 3){
+        else if(swallowFlag == 3 && document.getElementById("SwallowTd"+SwallowTableColumn+"_2").innerHTML!=""){
             p2=null;
             document.getElementById("SwallowTd"+SwallowTableColumn+"_2").innerHTML="";
             swallowFlag--;
         }
-        else if(swallowFlag == 4){
+        else if(swallowFlag == 4 && document.getElementById("SwallowTd"+SwallowTableColumn+"_3").innerHTML!=""){
             p3=null;
             document.getElementById("SwallowTd"+SwallowTableColumn+"_3").innerHTML="";
             swallowFlag--;
         }
-        else if(swallowFlag == 5){
+        else if(swallowFlag == 5 && document.getElementById("SwallowTd"+SwallowTableColumn+"_4").innerHTML!=""){
             p4=null;
             document.getElementById("SwallowTd"+SwallowTableColumn+"_4").innerHTML="";
             swallowFlag--;
         }
-        else if(swallowFlag == 6){
+        else if(swallowFlag == 6  && document.getElementById("SwallowTd"+SwallowTableColumn+"_5").innerHTML!=""){
             p5=null;
             document.getElementById("SwallowTd"+SwallowTableColumn+"_5").innerHTML="";
             swallowFlag--;
         }
         redraw();
+        redraw_s();
     }
 
     var SwallowTableColumn=1;
     var c1,i1,c2,i2,c3,total;
     function SwallowRecord(){
         if(swallowFlag == 1) {
-            // 網頁於表格顯示點的位置
-            var tr = document.createElement('tr');
-            tr.id = "SwallowTr"+SwallowTableColumn;
-                var td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_1";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                td.innerHTML = p1t.toFixed(3);
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_2";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_3";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_4";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_5";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_6";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_7";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_8";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_9";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_10";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_11";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_12";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                tr.appendChild(td);
-                td = document.createElement('td');
-                td.id = "SwallowTd"+SwallowTableColumn+"_13";
-                td.height = window.innerHeight/37.85;
-                td.width = window.innerWidth/22.857;
-                td.align = "center";
-                    // 網頁於表格添增刪除 column 的按鍵
-                    var DeleteButton = document.createElement('input');
-                    DeleteButton.id = "SwallowDeleteButton"+SwallowTableColumn;
-                    DeleteButton.type = "button";
-                    DeleteButton.value = " delete ";
-                    DeleteButton.style.fontSize = window.innerHeight/63.1+"px";
-                    td.appendChild(DeleteButton);
-                tr.appendChild(td);
-            document.getElementById('RecordTable').appendChild(tr);
+            if(!document.getElementById("SwallowTr"+SwallowTableColumn)){
+                // 網頁於表格顯示點的位置
+                var tr = document.createElement('tr');
+                tr.id = "SwallowTr"+SwallowTableColumn;
+                    var td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_1";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    td.innerHTML = p1t.toFixed(3);
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_2";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_3";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_4";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_5";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_6";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_7";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_8";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_9";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_10";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_11";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_12";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                    tr.appendChild(td);
+                    td = document.createElement('td');
+                    td.id = "SwallowTd"+SwallowTableColumn+"_13";
+                    td.height = window.innerHeight/37.85;
+                    td.width = window.innerWidth/22.857;
+                    td.align = "center";
+                        // 網頁於表格添增刪除 column 的按鍵
+                        var DeleteButton = document.createElement('input');
+                        DeleteButton.id = "SwallowDeleteButton"+SwallowTableColumn;
+                        DeleteButton.type = "button";
+                        DeleteButton.value = " delete ";
+                        DeleteButton.style.fontSize = window.innerHeight/63.1+"px";
+                        td.appendChild(DeleteButton);
+                    tr.appendChild(td);
+                document.getElementById('RecordTable').appendChild(tr);
+            }
+            else document.getElementById("SwallowTd"+SwallowTableColumn+"_1").innerHTML+=p1t.toFixed(3);
             // 網頁於按鍵的文字框指示選擇另一個要標記的點
             document.getElementById("SwallowIntervalSpan").innerHTML= "請點選畫面上第二個要標記的點";
             swallowFlag++;
@@ -1252,11 +1330,18 @@
             // 網頁添增將資料存入所有紀錄中的按鍵
             // 網頁添增下載此次表格資料的按鍵
             addSaveAndDownloadButton();
+            p1=null;
+            p2=null;
+            p3=null;
+            p4=null;
+            p5=null;
+            p6=null;
         }
     }
 
     function Delete(){
         document.removeEventListener("mousedown",swallowdisten,false);
+        if(!document.getElementById("SwallowTr" + SwallowTableColumn)) SwallowTableColumn--;
         p1=null;
         p2=null;
         p3=null;
@@ -1264,8 +1349,11 @@
         p5=null;
         p6=null;
         // 網頁於表格刪除 column
-        document.getElementById('RecordTable').removeChild(document.getElementById("SwallowTr" + this.id.substring(19)));
+        if(document.getElementById("SwallowTr" + SwallowTableColumn)){
+            document.getElementById('RecordTable').removeChild(document.getElementById("SwallowTr" + SwallowTableColumn));
+        }
         redraw();
+        redraw_s();
         // 網頁可用標記按鍵
         document.getElementById("SwallowIntervalButton").disabled=false;
         // 網頁將其他按鍵的文字框清空
@@ -1295,12 +1383,6 @@
     }
 
     function SaveIntoAll(){
-        p1=null;
-        p2=null;
-        p3=null;
-        p4=null;
-        p5=null;
-        p6=null;
         redraw();
         if(confirm("資料儲存後，表格就會清空。確定要執行嗎?")==true){
             csv="";
