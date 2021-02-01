@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8">
     <title>聲波顯示與標記介面</title>
-    <iframe src="https://cross-origin.com/myvideo.html" allow="autoplay">
   </head>
   <body>
       <!--網頁顯示選擇檔案的按鍵-->
@@ -51,7 +50,8 @@
     var xh = window.innerHeight/75.7;
     var w = window.innerWidth/1.103;
     var h = window.innerHeight/2.99;
-    var audioContext = new AudioContext();
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var audioContext = new window.AudioContext();
     var spectro;
     var media = {
       file: '',
