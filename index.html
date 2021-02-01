@@ -50,8 +50,8 @@
     var xh = window.innerHeight/75.7;
     var w = window.innerWidth/1.103;
     var h = window.innerHeight/2.99;
-    var audioContext = new AudioContext();
-    audioContext.resume();
+    var audioContext;
+    
     var spectro;
     var media = {
       file: '',
@@ -178,6 +178,8 @@
 		request.open('GET', selectedMedia.file, true);
 		request.responseType = 'arraybuffer';
 		request.onload = function() {
+          audioContext = new AudioContext();
+          audioContext.resume();
 		  audioContext.decodeAudioData(request.response, function(buffer) { callback(buf); });
 		};
 		request.send();
