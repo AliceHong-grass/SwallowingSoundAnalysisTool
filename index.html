@@ -31,7 +31,6 @@
         </tr>
       </table>
       <script src="scripts/spectrogram.js"></script>
-      <script src="scripts/audiobuffer-slice.js"></script>
       <script src="scripts/FFT.js"></script>
   </body>
   <script>
@@ -52,6 +51,7 @@
     var w = window.innerWidth/1.103;
     var h = window.innerHeight/2.99;
     var audioContext = new AudioContext();
+    audioContext.resume();
     var spectro;
     var media = {
       file: '',
@@ -178,10 +178,7 @@
 		request.open('GET', selectedMedia.file, true);
 		request.responseType = 'arraybuffer';
 		request.onload = function() {
-		  audioContext.decodeAudioData(request.response, function(buffer) { 
-            var slice = selectedMedia.slice;
-            AudioBufferSlice(buffer, slice.start, slice.end, function(error, buf) { callback(buf); });
-          });
+		  audioContext.decodeAudioData(request.response, function(buffer) { callback(buf); });
 		};
 		request.send();
 	}
