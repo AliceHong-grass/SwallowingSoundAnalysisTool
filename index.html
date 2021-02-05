@@ -496,7 +496,7 @@
         }
         ctx.stroke();
         theta = 0;
-        document.getElementById("audio_player").currentTime = 0;
+        t=0;
         media.slice.start = 0;
         media.slice.end = media.slice.start + duration*1000;
         document.getElementById("GoToInput").value = "00:00:00";
@@ -625,7 +625,7 @@
                 ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
             }
             ctx.stroke();
-            var t = Math.floor(theta*(1/samplefreq));
+            t = Math.floor(theta*(1/samplefreq));
             var hour = Math.floor(t/3600);
             if(hour<10) hour = "0" + hour;
             var min = Math.floor((t - hour*3600)/60);
