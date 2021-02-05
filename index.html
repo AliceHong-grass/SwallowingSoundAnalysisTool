@@ -200,6 +200,7 @@
             }
             else{
                 document.getElementById("audio_player").src = file;
+                document.getElementById("audio_player").currentTime = t;
                 clearInterval(go_s);
             }
         }, 1);
@@ -459,6 +460,7 @@
     }
 
     var theta=0;
+    var t=0;
     function init() {
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
@@ -532,7 +534,7 @@
         }
         ctx.stroke();
         theta=data.length-samplefreq*duration;
-        var t = maxT-duration;
+        t = maxT-duration;
         var hour = Math.floor(t/3600);
         if(hour<10) hour = "0" + hour;
         var min = Math.floor((t - hour*3600)/60);
@@ -540,7 +542,6 @@
         var sec = t - hour*3600 - min*60;
         if(sec<10) sec = "0" + sec;
         document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
-        document.getElementById("audio_player").currentTime = maxT-duration;
         media.slice.start = (maxT-duration)*1000;
         media.slice.end = media.slice.start + duration*1000;
         redraw_s();
@@ -578,7 +579,7 @@
                 ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
             }
             ctx.stroke();
-            var t = Math.floor(theta/samplefreq);
+            t = Math.floor(theta/samplefreq);
             var hour = Math.floor(t/3600);
             if(hour<10) hour = "0" + hour;
             var min = Math.floor((t - hour*3600)/60);
@@ -586,7 +587,6 @@
             var sec = t - hour*3600 - min*60;
             if(sec<10) sec = "0" + sec;
             document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
-            document.getElementById("audio_player").currentTime = t;
             media.slice.start = t*1000;
             media.slice.end = media.slice.start + duration*1000;
         }
@@ -633,7 +633,6 @@
             var sec = t - hour*3600 - min*60;
             if(sec<10) sec = "0" + sec;
             document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
-            document.getElementById("audio_player").currentTime = t;
             media.slice.start = t*1000;
             media.slice.end = media.slice.start + duration*1000;
         }
@@ -643,11 +642,10 @@
 
     function moveTo() {
         var point = document.getElementById("GoToInput").value.split(":");
-        var time = parseFloat(point[0])*3600 + parseFloat(point[1])*60 + parseFloat(point[2]);
-        document.getElementById("audio_player").currentTime = time;
-        media.slice.start = time*1000;
+        t = parseFloat(point[0])*3600 + parseFloat(point[1])*60 + parseFloat(point[2]);
+        media.slice.start = t*1000;
         media.slice.end = media.slice.start + duration*1000;
-        theta = time*samplefreq;
+        theta = t*samplefreq;
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
         ctx.strokeStyle = 'red';
