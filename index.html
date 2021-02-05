@@ -30,8 +30,8 @@
             <td id="control_6" style="text-align: left; font-size: 75%;"></td>
         </tr>
       </table>
-      <script src="scripts/spectrogram.js"></script>
-      <script src="scripts/FFT.js"></script>
+      <script src="FFT.js"></script>
+      <script src="chroma.js"></script>
   </body>
   <script>
     document.getElementById("original2").style.fontSize = window.innerHeight/63.1+"px";
@@ -50,9 +50,6 @@
     var xh = window.innerHeight/75.7;
     var w = window.innerWidth/1.103;
     var h = window.innerHeight/2.99;
-    var audioContext;
-    
-    var spectro;
     var media = {
       file: '',
       slice: {start: 0, end: 340000}
@@ -156,7 +153,12 @@
             maxV = Math.pow(2,(wav.BITS_PER_SAMPLE));
             fft = new FFT(1024, samplefreq);
             if(document.getElementById('AnnotationTable')) document.getElementById('AnnotationTable').innerHTML="";
-            if(document.getElementById("ContralCanvusP")) document.getElementById("ContralCanvusP").innerHTML="";
+            if(document.getElementById("control_1")) document.getElementById("control_1").innerHTML="";
+            if(document.getElementById("control_2")) document.getElementById("control_2").innerHTML="";
+            if(document.getElementById("control_3")) document.getElementById("control_3").innerHTML="";
+            if(document.getElementById("control_4")) document.getElementById("control_4").innerHTML="";
+            if(document.getElementById("control_5")) document.getElementById("control_5").innerHTML="";
+            if(document.getElementById("control_6")) document.getElementById("control_6").innerHTML="";
             if(document.getElementById("RecordTable")) document.getElementById("RecordTable").innerHTML="";
             if(document.getElementById("SaveTable")) document.getElementById("SaveTable").innerHTML="";
             // 網頁顯示調整畫布的按鍵
@@ -165,7 +167,6 @@
             addCanvus(Class);
             // 網頁繪製波形
             init();
-            playSong();
             // 網頁添增標記的按鍵（時間標記、振幅標記與吞嚥標記）
             // 網頁添增每個按鍵的文字框
             // 網頁添增紀錄的按鍵，並暫時隱藏
@@ -173,47 +174,70 @@
         };
     }
 
-	function loadMedia(selectedMedia, callback) {
-		var request = new XMLHttpRequest();
-		request.open('GET', selectedMedia.file, true);
-		request.responseType = 'arraybuffer';
-		request.onload = function() {
-          audioContext = new AudioContext();
-          audioContext.resume();
-		  audioContext.decodeAudioData(request.response, function(buffer) { callback(buffer); });
-		};
-		request.send();
-	}
-
     var dataslice;
+    var n=0;
+    var width=0;
+    var go_s;
 	function playSong() {
-		loadMedia(media, function(songBuffer) {
-          dataslice = data.slice(media.slice.start/1000*samplefreq,media.slice.end/1000*samplefreq);
-		  spectro.connectSource(songBuffer, audioContext);
-		  spectro.start();
-		});
-	}
+        document.getElementById("audio_player").src = "";
+        var canvas = document.getElementById(Class+"_Spectrograms");
+        ctx_s.clearRect(0, 0, w, h);
+        width=0;
+        n=0;
+        dataslice = data.slice(media.slice.start/1000*samplefreq,media.slice.end/1000*samplefreq);
+		go_s = setInterval(function(){
+            var signal = dataslice.slice(0+32*n,1024+32*n);
+            if(1024+32*n<=duration*samplefreq){
+                fft.forward(signal);
+                for (var i = 0; i < fft.spectrum.length; i++) {
+                    //ctx_s.fillStyle = "rgb(0,0,0,"+fft.spectrum[i]/100+")";
+                    ctx_s.fillStyle = getColor(fft.spectrum[i]);
+                    ctx_s.fillRect(width, canvas.height-i*canvas.height/fft.spectrum.length,
+                                          canvas.width/(((dataslice.length-1024)/32)+1), canvas.height/fft.spectrum.length);
+                }
+                width+=canvas.width/(((dataslice.length-1024)/32)+1);
+                n++;
+            }
+            else{
+                document.getElementById("audio_player").src = file;
+                clearInterval(go_s);
+            }
+        }, 1);
+    }
 
+    var colors = options(1000);
+    function options(steps) {
+        var baseColors = [[0,0,255,1], [0,255,255,1], [0,255,0,1], [255,255,0,1], [ 255,0,0,1]];
+        var positions = [0, 0.02, 0.05, 0.1, 0.5];
+        var scale = new chroma.scale(baseColors, positions).domain([0, steps]);
+        var col = [];
+        for (var i = 0; i < steps; ++i) {
+            var co = scale(i);
+            col.push(co.hex());
+        }
+        return col;
+    }
+
+    function getColor(index) {
+        var color = colors[index>>0];
+        if (typeof color === 'undefined') color = colors[999];
+        return color;
+    };
+    
     var go;
     function drawTimeLine(){
         document.getElementById("restart").disabled=false;
         go = setInterval(function(){
             var g = document.getElementById("audio_player").currentTime*samplefreq-theta;
             redraw();
-            ctx.strokeStyle = 'gray';
+            ctx.strokeStyle = 'green';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(g*(w/(samplefreq*duration)), 0);
             ctx.lineTo(g*(w/(samplefreq*duration)), h);
             ctx.stroke();
-            if(g>=samplefreq*duration) {
-              document.getElementById("restart").disabled=true;
-              stopTimeLine();
-              document.getElementById("audio_player").currentTime = Math.floor(theta*(1/samplefreq));
-              spectro.pause();
-              redraw();
-            }
-        }, 100);
+            if(g>=samplefreq*duration) resetTimeLine();
+        }, 10);
     }
 
     function stopTimeLine(){
@@ -223,10 +247,8 @@
 
     function resetTimeLine(){
         document.getElementById("restart").disabled=true;
-        clearInterval(go);
-        document.getElementById("audio_player").pause();
+        stopTimeLine();
         document.getElementById("audio_player").currentTime = Math.floor(theta*(1/samplefreq));
-        spectro.clear();
         redraw();
     }
 
@@ -293,8 +315,6 @@
             duration = this.value;
             init();
             media.slice.end = media.slice.start + duration*1000;
-            spectro.clear();
-            playSong();
             document.removeEventListener("mousedown",swallowdisten,false);
             if(p6==null){
                 p1=null;
@@ -418,8 +438,6 @@
                 CanvusTdNone3.id = codeDisplay+"_CanvusTdNone3";
                 document.getElementById(codeDisplay+'_CanvusTr3').appendChild(CanvusTdNone3);
 
-        spectro = Spectrogram(document.getElementById(codeDisplay+"_Spectrograms"));
-
         var rect = document.getElementById(codeDisplay).getBoundingClientRect();
         CanvusLeft=rect.left;
         CanvusTop=rect.top;
@@ -480,6 +498,7 @@
         media.slice.start = 0;
         media.slice.end = media.slice.start + duration*1000;
         document.getElementById("GoToInput").value = "00:00:00";
+        redraw_s();
     }
 
     function final(){
@@ -524,7 +543,6 @@
         document.getElementById("audio_player").currentTime = maxT-duration;
         media.slice.start = (maxT-duration)*1000;
         media.slice.end = media.slice.start + duration*1000;
-
         redraw_s();
     }
 
@@ -573,7 +591,6 @@
             media.slice.end = media.slice.start + duration*1000;
         }
         else{ final(); }
-
         redraw_s();
     }
 
@@ -621,7 +638,6 @@
             media.slice.end = media.slice.start + duration*1000;
         }
         else{ init(); }
-
         redraw_s();
     }
 
@@ -660,7 +676,6 @@
             ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
         }
         ctx.stroke();
-
         redraw_s();
     }
 
@@ -795,7 +810,7 @@
     }
 
     function redraw_s() {
-        spectro.clear();
+        clearInterval(go_s);
         playSong();
         ctx_s.beginPath();
         if(p1) {
