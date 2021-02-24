@@ -36,7 +36,7 @@
   <script>
     document.getElementById("original2").style.fontSize = window.innerHeight/63.1+"px";
     document.getElementById("files").style.fontSize = window.innerHeight/63.1+"px";
-    var ctx_y, ctx, ctx_x, ctx_s;
+    var ctx_y, ctx, ctx_x, ctx_s, ctx_s_2;
     var data;
     var Class;
     var maxV;
@@ -179,51 +179,40 @@
     var width=0;
     var go_s;
 	function playSong() {
-        document.getElementById("audio_player").src = "";
         var canvas = document.getElementById(Class+"_Spectrograms");
         ctx_s.clearRect(0, 0, w, h);
         width=0;
         n=0;
         dataslice = data.slice(media.slice.start/1000*samplefreq,media.slice.end/1000*samplefreq);
-		go_s = setInterval(function(){
+        go_s = setInterval(function(){
             var signal = dataslice.slice(0+32*n,1024+32*n);
             if(1024+32*n<=duration*samplefreq){
                 fft.forward(signal);
                 for (var i = 0; i < fft.spectrum.length; i++) {
-                    //ctx_s.fillStyle = "rgb(0,0,0,"+fft.spectrum[i]/100+")";
-                    ctx_s.fillStyle = getColor(fft.spectrum[i]);
+                    if(fft.spectrum[i]>299) fft.spectrum[i]=299;
+                    ctx_s.fillStyle = colors[fft.spectrum[i]>>0];
                     ctx_s.fillRect(width, canvas.height-i*canvas.height/fft.spectrum.length,
-                                          canvas.width/(((dataslice.length-1024)/32)+1), canvas.height/fft.spectrum.length);
+                                            canvas.width/(((dataslice.length-1024)/32)+1), canvas.height/fft.spectrum.length);
                 }
                 width+=canvas.width/(((dataslice.length-1024)/32)+1);
                 n++;
             }
             else{
-                document.getElementById("audio_player").src = file;
                 document.getElementById("audio_player").currentTime = t;
                 clearInterval(go_s);
             }
         }, 1);
     }
 
-    var colors = options(1000);
+    var colors = options(300);
     function options(steps) {
-        var baseColors = [[0,0,255,1], [0,255,255,1], [0,255,0,1], [255,255,0,1], [ 255,0,0,1]];
-        var positions = [0, 0.02, 0.05, 0.1, 0.5];
-        var scale = new chroma.scale(baseColors, positions).domain([0, steps]);
+        var baseColors = ['#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff0000'];
+        var positions = [0,0.1,0.2,0.3,1];
+        var scale = new chroma.scale(baseColors,positions).domain([0,steps]);
         var col = [];
-        for (var i = 0; i < steps; ++i) {
-            var co = scale(i);
-            col.push(co.hex());
-        }
+        for (var i = 0; i < steps; ++i) col.push(scale(i).hex());
         return col;
     }
-
-    function getColor(index) {
-        var color = colors[index>>0];
-        if (typeof color === 'undefined') color = colors[999];
-        return color;
-    };
     
     var go;
     function drawTimeLine(){
@@ -237,6 +226,12 @@
             ctx.moveTo(g*(w/(samplefreq*duration)), 0);
             ctx.lineTo(g*(w/(samplefreq*duration)), h);
             ctx.stroke();
+            ctx_s_2.strokeStyle = 'brown';
+            ctx_s_2.lineWidth = 1.5;
+            ctx_s_2.beginPath();
+            ctx_s_2.moveTo(g*(w/(samplefreq*duration)), 0);
+            ctx_s_2.lineTo(g*(w/(samplefreq*duration)), h);
+            ctx_s_2.stroke();
             if(g>=samplefreq*duration) resetTimeLine();
         }, 10);
     }
@@ -330,7 +325,8 @@
                 }
             }
             redraw();
-            redraw_s();
+            clearInterval(go_s);
+            playSong();
             // 網頁可用標記按鍵
             document.getElementById("SwallowIntervalButton").disabled=false;
             // 網頁將其他按鍵的文字框清空
@@ -434,6 +430,20 @@
                     Spectrograms.width = w;
                     Spectrograms.height = h;
                     Spectrograms.style.border = "1px solid black";
+                    Spectrograms.style.position = "absolute";
+                    Spectrograms.style.left = "3.4%";
+                    Spectrograms.style.top = "53%";
+                    Spectrograms.style.zIndex = "0";
+                    document.getElementById(codeDisplay+'_SpectrogramsTd').appendChild(Spectrograms);
+                    Spectrograms = document.createElement('canvas');
+                    Spectrograms.id = codeDisplay+"_Spectrograms_2";
+                    Spectrograms.width = w;
+                    Spectrograms.height = h;
+                    Spectrograms.style.border = "1px solid black";
+                    Spectrograms.style.position = "absolute";
+                    Spectrograms.style.left = "3.4%";
+                    Spectrograms.style.top = "53%";
+                    Spectrograms.style.zIndex = "1";
                     document.getElementById(codeDisplay+'_SpectrogramsTd').appendChild(Spectrograms);
                 var CanvusTdNone3 = document.createElement('td');
                 CanvusTdNone3.id = codeDisplay+"_CanvusTdNone3";
@@ -451,6 +461,7 @@
         ctx = document.getElementById(Class).getContext("2d");
         ctx_x = document.getElementById(Class+'_X').getContext("2d");
         ctx_s = document.getElementById(Class+'_Spectrograms').getContext("2d");
+        ctx_s_2 = document.getElementById(Class+'_Spectrograms_2').getContext("2d");
 
         document.getElementById("StartOfRecordButton").onclick = init;
         document.getElementById("EndOfRecordButton").onclick = final;
@@ -500,7 +511,8 @@
         media.slice.start = 0;
         media.slice.end = media.slice.start + duration*1000;
         document.getElementById("GoToInput").value = "00:00:00";
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
     }
 
     function final(){
@@ -544,7 +556,8 @@
         document.getElementById("GoToInput").value= hour + ":" + min + ":" + sec;
         media.slice.start = (maxT-duration)*1000;
         media.slice.end = media.slice.start + duration*1000;
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
     }
 
     function nextWave() {
@@ -591,7 +604,8 @@
             media.slice.end = media.slice.start + duration*1000;
         }
         else{ final(); }
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
     }
 
     function previousWave() {
@@ -637,7 +651,8 @@
             media.slice.end = media.slice.start + duration*1000;
         }
         else{ init(); }
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
     }
 
     function moveTo() {
@@ -674,7 +689,8 @@
             ctx.lineTo(i*(w/(samplefreq*duration)), (data[theta+i]*h/maxV)+h/2.0);
         }
         ctx.stroke();
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
     }
 
     function addAnnotationButton(){
@@ -754,6 +770,7 @@
     function redraw() {
         ctx.setTransform(1,0,0,-1,0,h);
         ctx.clearRect(0, 0, w, h);
+        ctx_s_2.clearRect(0, 0, w, h);
         ctx.strokeStyle = 'red';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -805,39 +822,35 @@
         ctx.strokeStyle = 'blue';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-    }
 
-    function redraw_s() {
-        clearInterval(go_s);
-        playSong();
-        ctx_s.beginPath();
+        ctx_s_2.beginPath();
         if(p1) {
-            ctx_s.moveTo(p1.pageX-CanvusLeft_s, 0);
-            ctx_s.lineTo(p1.pageX-CanvusLeft_s, h);
+            ctx_s_2.moveTo(p1.pageX-CanvusLeft_s, 0);
+            ctx_s_2.lineTo(p1.pageX-CanvusLeft_s, h);
         }
         if(p2) {
-            ctx_s.moveTo(p2.pageX-CanvusLeft_s, 0);
-            ctx_s.lineTo(p2.pageX-CanvusLeft_s, h);
+            ctx_s_2.moveTo(p2.pageX-CanvusLeft_s, 0);
+            ctx_s_2.lineTo(p2.pageX-CanvusLeft_s, h);
         }
         if(p3) {
-            ctx_s.moveTo(p3.pageX-CanvusLeft_s, 0);
-            ctx_s.lineTo(p3.pageX-CanvusLeft_s, h);
+            ctx_s_2.moveTo(p3.pageX-CanvusLeft_s, 0);
+            ctx_s_2.lineTo(p3.pageX-CanvusLeft_s, h);
         }
         if(p4) {
-            ctx_s.moveTo(p4.pageX-CanvusLeft_s, 0);
-            ctx_s.lineTo(p4.pageX-CanvusLeft_s, h);
+            ctx_s_2.moveTo(p4.pageX-CanvusLeft_s, 0);
+            ctx_s_2.lineTo(p4.pageX-CanvusLeft_s, h);
         }
         if(p5) {
-            ctx_s.moveTo(p5.pageX-CanvusLeft_s, 0);
-            ctx_s.lineTo(p5.pageX-CanvusLeft_s, h);
+            ctx_s_2.moveTo(p5.pageX-CanvusLeft_s, 0);
+            ctx_s_2.lineTo(p5.pageX-CanvusLeft_s, h);
         }
         if(p6) {
-            ctx_s.moveTo(p6.pageX-CanvusLeft_s, 0);
-            ctx_s.lineTo(p6.pageX-CanvusLeft_s, h);
+            ctx_s_2.moveTo(p6.pageX-CanvusLeft_s, 0);
+            ctx_s_2.lineTo(p6.pageX-CanvusLeft_s, h);
         }
-        ctx_s.strokeStyle = 'blue';
-        ctx_s.lineWidth = 1.5;
-        ctx_s.stroke();
+        ctx_s_2.strokeStyle = 'black';
+        ctx_s_2.lineWidth = 1.5;
+        ctx_s_2.stroke();
     }
 
     function SwallowTable(){
@@ -961,12 +974,12 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx_s.beginPath();
-                ctx_s.moveTo(p1.pageX-CanvusLeft_s, 0);
-                ctx_s.lineTo(p1.pageX-CanvusLeft_s, h);
-                ctx_s.strokeStyle = 'blue';
-                ctx_s.lineWidth = 1.5;
-                ctx_s.stroke();
+                ctx_s_2.beginPath();
+                ctx_s_2.moveTo(p1.pageX-CanvusLeft_s, 0);
+                ctx_s_2.lineTo(p1.pageX-CanvusLeft_s, h);
+                ctx_s_2.strokeStyle = 'black';
+                ctx_s_2.lineWidth = 1.5;
+                ctx_s_2.stroke();
                 
                 p1t = (p1.pageX-CanvusLeft)/(w/(duration*1000));
             }
@@ -995,12 +1008,12 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx_s.beginPath();
-                ctx_s.moveTo(p2.pageX-CanvusLeft_s, 0);
-                ctx_s.lineTo(p2.pageX-CanvusLeft_s, h);
-                ctx_s.strokeStyle = 'blue';
-                ctx_s.lineWidth = 1.5;
-                ctx_s.stroke();
+                ctx_s_2.beginPath();
+                ctx_s_2.moveTo(p2.pageX-CanvusLeft_s, 0);
+                ctx_s_2.lineTo(p2.pageX-CanvusLeft_s, h);
+                ctx_s_2.strokeStyle = 'black';
+                ctx_s_2.lineWidth = 1.5;
+                ctx_s_2.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1027,12 +1040,12 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx_s.beginPath();
-                ctx_s.moveTo(p3.pageX-CanvusLeft_s, 0);
-                ctx_s.lineTo(p3.pageX-CanvusLeft_s, h);
-                ctx_s.strokeStyle = 'blue';
-                ctx_s.lineWidth = 1.5;
-                ctx_s.stroke();
+                ctx_s_2.beginPath();
+                ctx_s_2.moveTo(p3.pageX-CanvusLeft_s, 0);
+                ctx_s_2.lineTo(p3.pageX-CanvusLeft_s, h);
+                ctx_s_2.strokeStyle = 'black';
+                ctx_s_2.lineWidth = 1.5;
+                ctx_s_2.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1059,12 +1072,12 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx_s.beginPath();
-                ctx_s.moveTo(p4.pageX-CanvusLeft_s, 0);
-                ctx_s.lineTo(p4.pageX-CanvusLeft_s, h);
-                ctx_s.strokeStyle = 'blue';
-                ctx_s.lineWidth = 1.5;
-                ctx_s.stroke();
+                ctx_s_2.beginPath();
+                ctx_s_2.moveTo(p4.pageX-CanvusLeft_s, 0);
+                ctx_s_2.lineTo(p4.pageX-CanvusLeft_s, h);
+                ctx_s_2.strokeStyle = 'black';
+                ctx_s_2.lineWidth = 1.5;
+                ctx_s_2.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1091,12 +1104,12 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx_s.beginPath();
-                ctx_s.moveTo(p5.pageX-CanvusLeft_s, 0);
-                ctx_s.lineTo(p5.pageX-CanvusLeft_s, h);
-                ctx_s.strokeStyle = 'blue';
-                ctx_s.lineWidth = 1.5;
-                ctx_s.stroke();
+                ctx_s_2.beginPath();
+                ctx_s_2.moveTo(p5.pageX-CanvusLeft_s, 0);
+                ctx_s_2.lineTo(p5.pageX-CanvusLeft_s, h);
+                ctx_s_2.strokeStyle = 'black';
+                ctx_s_2.lineWidth = 1.5;
+                ctx_s_2.stroke();
                 }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1123,12 +1136,12 @@
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx_s.beginPath();
-                ctx_s.moveTo(p6.pageX-CanvusLeft_s, 0);
-                ctx_s.lineTo(p6.pageX-CanvusLeft_s, h);
-                ctx_s.strokeStyle = 'blue';
-                ctx_s.lineWidth = 1.5;
-                ctx_s.stroke();
+                ctx_s_2.beginPath();
+                ctx_s_2.moveTo(p6.pageX-CanvusLeft_s, 0);
+                ctx_s_2.lineTo(p6.pageX-CanvusLeft_s, h);
+                ctx_s_2.strokeStyle = 'black';
+                ctx_s_2.lineWidth = 1.5;
+                ctx_s_2.stroke();
             }
             else {
                 document.getElementById("SwallowIntervalSpan").innerHTML="超出範圍，請重新點選";
@@ -1182,7 +1195,8 @@
             swallowFlag--;
         }
         redraw();
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
     }
 
     var SwallowTableColumn=1;
@@ -1346,12 +1360,6 @@
             // 網頁添增將資料存入所有紀錄中的按鍵
             // 網頁添增下載此次表格資料的按鍵
             addSaveAndDownloadButton();
-            p1=null;
-            p2=null;
-            p3=null;
-            p4=null;
-            p5=null;
-            p6=null;
         }
     }
 
@@ -1369,7 +1377,8 @@
             document.getElementById('RecordTable').removeChild(document.getElementById("SwallowTr" + SwallowTableColumn));
         }
         redraw();
-        redraw_s();
+        clearInterval(go_s);
+        playSong();
         // 網頁可用標記按鍵
         document.getElementById("SwallowIntervalButton").disabled=false;
         // 網頁將其他按鍵的文字框清空
